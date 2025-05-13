@@ -25,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, KeyRound } from "lucide-react";
+import { ClientOnly } from "@/components/client-only";
 
 const loginFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -88,11 +89,13 @@ export default function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="it.staff@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
+                    <ClientOnly>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="it.staff@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </ClientOnly>
                   </FormItem>
                 )}
               />
@@ -101,11 +104,13 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
+                    <ClientOnly>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </ClientOnly>
                   </FormItem>
                 )}
               />
