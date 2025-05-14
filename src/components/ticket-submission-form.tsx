@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -27,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { problemTypes, urgencies } from "@/lib/placeholder-data";
 import type { ProblemType, Urgency } from "@/lib/types";
 import { Paperclip, Send } from "lucide-react";
+import { ClientOnly } from "./client-only";
 
 const ticketFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(50),
@@ -93,11 +95,13 @@ export function TicketSubmissionForm() {
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g. John Doe" {...field} />
-                </FormControl>
-                <FormMessage />
+                <ClientOnly>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. John Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </ClientOnly>
               </FormItem>
             )}
           />
@@ -106,11 +110,13 @@ export function TicketSubmissionForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email Address</FormLabel>
-                <FormControl>
-                  <Input type="email" placeholder="e.g. john.doe@example.com" {...field} />
-                </FormControl>
-                <FormMessage />
+                <ClientOnly>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="e.g. john.doe@example.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </ClientOnly>
               </FormItem>
             )}
           />
@@ -121,11 +127,13 @@ export function TicketSubmissionForm() {
           name="subject"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Subject</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g. Cannot login to application" {...field} />
-              </FormControl>
-              <FormMessage />
+              <ClientOnly>
+                <FormLabel>Subject</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g. Cannot login to application" {...field} />
+                </FormControl>
+                <FormMessage />
+              </ClientOnly>
             </FormItem>
           )}
         />
@@ -136,22 +144,24 @@ export function TicketSubmissionForm() {
             name="problemType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Problem Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a problem type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {problemTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
+                <ClientOnly>
+                  <FormLabel>Problem Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a problem type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {problemTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </ClientOnly>
               </FormItem>
             )}
           />
@@ -160,22 +170,24 @@ export function TicketSubmissionForm() {
             name="urgency"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Urgency Level</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select urgency level" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {urgencies.map((level) => (
-                      <SelectItem key={level} value={level}>
-                        {level}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
+                <ClientOnly>
+                  <FormLabel>Urgency Level</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select urgency level" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {urgencies.map((level) => (
+                        <SelectItem key={level} value={level}>
+                          {level}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </ClientOnly>
               </FormItem>
             )}
           />
@@ -186,15 +198,17 @@ export function TicketSubmissionForm() {
           name="message"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Message</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Describe your issue in detail..."
-                  className="resize-y min-h-[120px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
+              <ClientOnly>
+                <FormLabel>Message</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Describe your issue in detail..."
+                    className="resize-y min-h-[120px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </ClientOnly>
             </FormItem>
           )}
         />
@@ -204,18 +218,20 @@ export function TicketSubmissionForm() {
           name="attachment"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Attach File (Optional)</FormLabel>
-              <FormControl>
-                <Input 
-                  type="file" 
-                  ref={fileInputRef}
-                  onChange={(e) => field.onChange(e.target.files)} 
-                />
-              </FormControl>
-              <FormDescription>
-                Max file size: 5MB. Allowed types: JPG, PNG, PDF, DOCX.
-              </FormDescription>
-              <FormMessage />
+              <ClientOnly>
+                <FormLabel>Attach File (Optional)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="file" 
+                    ref={fileInputRef}
+                    onChange={(e) => field.onChange(e.target.files)} 
+                  />
+                </FormControl>
+                <FormDescription>
+                  Max file size: 5MB. Allowed types: JPG, PNG, PDF, DOCX.
+                </FormDescription>
+                <FormMessage />
+              </ClientOnly>
             </FormItem>
           )}
         />
