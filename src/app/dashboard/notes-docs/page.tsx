@@ -8,11 +8,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,18 +21,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog as BookmarkDialog, // Renamed to avoid conflict with NoteFormDialog
+  DialogContent as BookmarkDialogContent,
+  DialogHeader as BookmarkDialogHeader,
+  DialogTitle as BookmarkDialogTitle,
+  DialogFooter as BookmarkDialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Note, Bookmark, Document } from "@/lib/types";
 import { getStoredNotes, storeNotes, getStoredBookmarks, storeBookmarks, getStoredDocuments, storeDocuments } from "@/lib/placeholder-data";
+import { NoteFormDialog, type NoteFormData } from "@/components/dashboard/note-form-dialog"; // New import
 import {
   NotebookText,
   Bookmark as BookmarkIcon,
@@ -44,7 +41,6 @@ import {
   Edit3,
   Trash2,
   UploadCloud,
-  Bold, Italic, Underline, List, ListOrdered, Link as LinkIcon, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -53,8 +49,8 @@ export default function NotesDocsPage() {
 
   // State for notes
   const [notes, setNotes] = React.useState<Note[]>([]);
-  const [currentNote, setCurrentNote] = React.useState<Partial<Note>>({ title: "", content: "" });
-  const [editingNoteId, setEditingNoteId] = React.useState<string | null>(null);
+  const [isNoteFormOpen, setIsNoteFormOpen] = React.useState(false);
+  const [noteToEdit, setNoteToEdit] = React.useState<Note | null>(null);
   const [noteToDelete, setNoteToDelete] = React.useState<Note | null>(null);
 
   // State for bookmarks
@@ -76,27 +72,32 @@ export default function NotesDocsPage() {
   }, []);
 
   // --- Notes Handlers ---
-  const handleNoteChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setCurrentNote(prev => ({ ...prev, [name]: value }));
+  const handleAddNoteClick = () => {
+    setNoteToEdit(null);
+    setIsNoteFormOpen(true);
   };
 
-  const handleSaveNote = () => {
-    if (!currentNote.title?.trim() || !currentNote.content?.trim()) {
+  const handleEditNoteClick = (note: Note) => {
+    setNoteToEdit(note);
+    setIsNoteFormOpen(true);
+  };
+
+  const handleSaveNote = (data: NoteFormData) => {
+    if (!data.title.trim() || !data.content.trim()) {
       toast({ title: "Error", description: "Note title and content cannot be empty.", variant: "destructive" });
       return;
     }
     const now = new Date().toISOString();
-    if (editingNoteId) {
-      const updatedNotes = notes.map(n => n.id === editingNoteId ? { ...n, ...currentNote, title: currentNote.title!, content: currentNote.content!, updatedAt: now } as Note : n);
+    if (noteToEdit) { // Editing existing note
+      const updatedNotes = notes.map(n => n.id === noteToEdit.id ? { ...n, ...data, updatedAt: now } : n);
       setNotes(updatedNotes);
       storeNotes(updatedNotes);
       toast({ title: "Note Updated", description: "Your note has been successfully updated." });
-    } else {
+    } else { // Adding new note
       const newNote: Note = {
         id: `note-${Date.now()}`,
-        title: currentNote.title!,
-        content: currentNote.content!,
+        title: data.title,
+        content: data.content,
         createdAt: now,
         updatedAt: now,
       };
@@ -105,18 +106,8 @@ export default function NotesDocsPage() {
       storeNotes(updatedNotes);
       toast({ title: "Note Added", description: "Your new note has been saved." });
     }
-    setCurrentNote({ title: "", content: "" });
-    setEditingNoteId(null);
-  };
-
-  const handleEditNote = (note: Note) => {
-    setEditingNoteId(note.id);
-    setCurrentNote({ title: note.title, content: note.content });
-  };
-
-  const handleCancelEditNote = () => {
-    setCurrentNote({ title: "", content: "" });
-    setEditingNoteId(null);
+    setIsNoteFormOpen(false);
+    setNoteToEdit(null);
   };
   
   const confirmDeleteNote = () => {
@@ -126,7 +117,10 @@ export default function NotesDocsPage() {
       storeNotes(updatedNotes);
       toast({ title: "Note Deleted", description: `${noteToDelete.title} has been deleted.` });
       setNoteToDelete(null);
-      if (editingNoteId === noteToDelete.id) handleCancelEditNote();
+      if (noteToEdit && noteToEdit.id === noteToDelete.id) {
+        setIsNoteFormOpen(false); // Close dialog if deleted note was being edited
+        setNoteToEdit(null);
+      }
     }
   };
 
@@ -236,6 +230,9 @@ export default function NotesDocsPage() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
+             <Button variant="outline" onClick={handleAddNoteClick}>
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Note
+            </Button>
              <Button variant="outline" onClick={() => setIsBookmarkDialogOpen(true)}>
                 <BookmarkIcon className="mr-2 h-4 w-4" /> Add Bookmark
             </Button>
@@ -243,7 +240,6 @@ export default function NotesDocsPage() {
                 <UploadCloud className="mr-2 h-4 w-4" /> Upload File
             </Button>
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
-             {/* The "Add Note" is implicitly part of the note editor */}
           </div>
         </CardHeader>
       </Card>
@@ -253,66 +249,39 @@ export default function NotesDocsPage() {
         <Card className="lg:col-span-2 shadow-md bg-sidebar-background text-sidebar-foreground p-0">
           <CardHeader className="bg-sidebar-background rounded-t-lg">
             <CardTitle className="text-xl">Notes</CardTitle>
+             <CardDescription className="text-sidebar-foreground/80">Click "Add Note" or an existing note's edit icon.</CardDescription>
           </CardHeader>
           <CardContent className="p-4 space-y-4">
-            {/* Note Editor Form */}
-            <div className="space-y-3 p-4 border border-sidebar-border rounded-md bg-background text-foreground">
-              <Input
-                name="title"
-                placeholder="Note Title"
-                value={currentNote.title || ""}
-                onChange={handleNoteChange}
-                className="text-lg font-semibold"
-              />
-              {/* Mock RTE Toolbar */}
-              <div className="flex flex-wrap gap-1 p-2 border-b border-border">
-                  {[
-                    { icon: Bold, label: 'Bold' }, { icon: Italic, label: 'Italic' }, { icon: Underline, label: 'Underline' },
-                    { icon: List, label: 'Bullet List' }, { icon: ListOrdered, label: 'Numbered List' },
-                    { icon: AlignLeft, label: 'Left' }, { icon: AlignCenter, label: 'Center' }, { icon: AlignRight, label: 'Right' },
-                    { icon: LinkIcon, label: 'Link' }, { icon: ImageIcon, label: 'Image' },
-                  ].map(item => (
-                     <Button key={item.label} variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-8 px-2" title={item.label} onClick={() => toast({title: "Mock Action", description:`${item.label} clicked (UI only).`})}> <item.icon className="h-4 w-4" /> </Button>
-                  ))}
-              </div>
-              <Textarea
-                name="content"
-                placeholder="Start writing your note..."
-                value={currentNote.content || ""}
-                onChange={handleNoteChange}
-                className="min-h-[150px] bg-background text-foreground"
-              />
-              <div className="flex justify-end gap-2">
-                {editingNoteId && <Button variant="outline" onClick={handleCancelEditNote}>Cancel</Button>}
-                <Button onClick={handleSaveNote} className="bg-primary hover:bg-primary/90">
-                  {editingNoteId ? "Save Changes" : "Save Note"}
-                </Button>
-              </div>
-            </div>
-
             {/* List of Existing Notes */}
-            {notes.length > 0 && <h3 className="text-lg font-semibold pt-4 text-sidebar-foreground">Saved Notes:</h3>}
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-              {notes.map(note => (
-                <Card key={note.id} className="bg-background text-foreground">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-md flex justify-between items-center">
-                      {note.title}
-                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-primary" onClick={() => handleEditNote(note)}><Edit3 className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-destructive" onClick={() => setNoteToDelete(note)}><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                        Last updated: {format(new Date(note.updatedAt), "PP p")}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm whitespace-pre-wrap truncate h-10 group-hover:h-auto">{note.content}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            {notes.length > 0 ? (
+                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                {notes.map(note => (
+                    <Card key={note.id} className="bg-background text-foreground">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-md flex justify-between items-center">
+                        {note.title}
+                        <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-primary" onClick={() => handleEditNoteClick(note)}><Edit3 className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-destructive" onClick={() => setNoteToDelete(note)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                            Last updated: {format(new Date(note.updatedAt), "PP p")}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm whitespace-pre-wrap truncate hover:whitespace-normal hover:overflow-visible h-10 hover:h-auto transition-all duration-200">{note.content}</p>
+                    </CardContent>
+                    </Card>
+                ))}
+                </div>
+            ) : (
+                <div className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-sidebar-border rounded-md">
+                    <NotebookText className="h-12 w-12 text-sidebar-foreground/50 mb-3" />
+                    <p className="text-lg font-semibold text-sidebar-foreground/70">No Notes Yet</p>
+                    <p className="text-sidebar-foreground/60 text-sm">Click "Add Note" to create your first one.</p>
+                </div>
+            )}
           </CardContent>
         </Card>
 
@@ -325,7 +294,7 @@ export default function NotesDocsPage() {
                 <BookmarkIcon className="h-6 w-6" /> Bookmarks
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
               {bookmarks.length > 0 ? bookmarks.map(bookmark => (
                 <div key={bookmark.id} className="flex items-center justify-between p-2 bg-accent/80 rounded">
                   <div>
@@ -348,7 +317,7 @@ export default function NotesDocsPage() {
                 <FileText className="h-6 w-6" /> Documents
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
                 {documents.length > 0 ? documents.map(doc => (
                     <div key={doc.id} className="flex items-center justify-between p-2 bg-background rounded border">
                         <div>
@@ -363,8 +332,18 @@ export default function NotesDocsPage() {
         </div>
       </div>
 
+      <NoteFormDialog
+        isOpen={isNoteFormOpen}
+        onClose={() => {
+          setIsNoteFormOpen(false);
+          setNoteToEdit(null);
+        }}
+        noteToEdit={noteToEdit}
+        onSave={handleSaveNote}
+      />
+
       {/* Bookmark Add/Edit Dialog */}
-      <Dialog open={isBookmarkDialogOpen} onOpenChange={(isOpen) => {
+      <BookmarkDialog open={isBookmarkDialogOpen} onOpenChange={(isOpen) => {
           if (!isOpen) {
               setIsBookmarkDialogOpen(false);
               setCurrentBookmark({ title: "", url: "" });
@@ -373,10 +352,10 @@ export default function NotesDocsPage() {
               setIsBookmarkDialogOpen(true);
           }
       }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingBookmarkId ? "Edit Bookmark" : "Add New Bookmark"}</DialogTitle>
-          </DialogHeader>
+        <BookmarkDialogContent>
+          <BookmarkDialogHeader>
+            <BookmarkDialogTitle>{editingBookmarkId ? "Edit Bookmark" : "Add New Bookmark"}</BookmarkDialogTitle>
+          </BookmarkDialogHeader>
           <div className="space-y-4 py-2">
             <div>
               <Label htmlFor="bookmarkTitle">Title</Label>
@@ -387,12 +366,12 @@ export default function NotesDocsPage() {
               <Input id="bookmarkUrl" name="url" type="url" value={currentBookmark.url || ""} onChange={handleBookmarkFormChange} placeholder="https://docs.google.com" />
             </div>
           </div>
-          <DialogFooter>
+          <BookmarkDialogFooter>
             <Button variant="outline" onClick={() => {setIsBookmarkDialogOpen(false); setCurrentBookmark({ title: "", url: "" }); setEditingBookmarkId(null); }}>Cancel</Button>
             <Button onClick={handleSaveBookmark}>{editingBookmarkId ? "Save Changes" : "Add Bookmark"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </BookmarkDialogFooter>
+        </BookmarkDialogContent>
+      </BookmarkDialog>
 
       {/* Delete Confirmation Dialogs */}
       <AlertDialog open={!!noteToDelete} onOpenChange={() => setNoteToDelete(null)}>
@@ -416,3 +395,4 @@ export default function NotesDocsPage() {
     </div>
   );
 }
+
