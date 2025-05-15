@@ -1,26 +1,37 @@
 
 "use client"; 
 
-import * as React from 'react'; // Added React import
+import * as React from 'react';
+import { useParams } from 'next/navigation'; // Import useParams
 import { TicketDetails } from "@/components/dashboard/ticket-details";
-import { getAllTickets } from "@/lib/placeholder-data"; // Updated import
-import type { Ticket } from '@/lib/types'; // Added Ticket import
+import { getAllTickets } from "@/lib/placeholder-data";
+import type { Ticket } from '@/lib/types';
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
+// Remove params from function signature, will use useParams hook instead
+export default function SingleTicketPage() {
+  const routeParams = useParams();
+  const ticketId = routeParams.id as string; // Assuming 'id' is always a string for this route
 
-export default function SingleTicketPage({ params }: { params: { id: string } }) {
   const [ticket, setTicket] = React.useState<Ticket | undefined | null>(undefined); // null for not found
 
   React.useEffect(() => {
-    const allTickets = getAllTickets();
-    const foundTicket = allTickets.find((t) => t.id === params.id);
-    setTicket(foundTicket || null); // Set to null if not found after checking
-  }, [params.id]);
+    if (ticketId) { // Only proceed if ticketId is available
+      const allTickets = getAllTickets();
+      const foundTicket = allTickets.find((t) => t.id === ticketId);
+      setTicket(foundTicket || null); // Set to null if not found after checking
+    } else {
+      // If ticketId is not available from params (e.g. route mismatch, though unlikely for a dynamic segment page)
+      // setTicket to null to indicate not found or error state.
+      setTicket(null);
+    }
+  }, [ticketId]); // Depend on ticketId from useParams
 
-  if (ticket === undefined) { // Still loading
+  // Loading state: shown if ticketId is present but ticket data hasn't been resolved yet.
+  if (ticketId && ticket === undefined) { 
     return (
         <div className="flex flex-col items-center justify-center h-full p-8">
              <p>Loading ticket details...</p>
@@ -28,7 +39,8 @@ export default function SingleTicketPage({ params }: { params: { id: string } })
     );
   }
 
-  if (!ticket) { // Not found
+  // Not found or error state: ticketId might be missing or ticket data resolved to null.
+  if (!ticket) { 
     return (
         <div className="flex flex-col items-center justify-center h-full p-8">
             <Card className="w-full max-w-md text-center shadow-lg">
@@ -37,7 +49,7 @@ export default function SingleTicketPage({ params }: { params: { id: string } })
                 </CardHeader>
                 <CardContent>
                     <p className="text-muted-foreground mb-6">
-                    The ticket with ID <span className="font-medium">{params.id}</span> could not be found. It might have been deleted or the ID is incorrect.
+                    The ticket {ticketId ? `with ID ${ticketId}` : ""} could not be found. It might have been deleted or the ID is incorrect.
                     </p>
                     <Button asChild>
                         <Link href="/dashboard/tickets">
@@ -50,6 +62,7 @@ export default function SingleTicketPage({ params }: { params: { id: string } })
     );
   }
 
+  // Ticket found, render details
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
