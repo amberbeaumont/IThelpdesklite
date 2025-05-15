@@ -84,10 +84,10 @@ export const mockTickets: Ticket[] = [
   },
 ];
 
-export const mockSnippets: Snippet[] = [
-  { id: 'snip1', title: 'Password Reset Instructions', content: 'To reset your password, please visit [link] and follow the on-screen instructions. If you continue to experience issues, please let us know.' },
-  { id: 'snip2', title: 'Software Reinstall Guide', content: 'We recommend trying to reinstall the software. Please follow these steps: 1. Uninstall the current version. 2. Restart your computer. 3. Download the latest version from [link]. 4. Install the software. Let us know if this resolves the issue.' },
-  { id: 'snip3', title: 'Network Troubleshooting Steps', content: 'Please try the following network troubleshooting steps: 1. Restart your modem and router. 2. Check your network cable connections. 3. Try connecting to a different network if possible to isolate the issue. If the problem persists, provide us with details about your network setup.' },
+export const initialMockSnippets: Snippet[] = [ // Renamed to avoid conflict if localStorage is empty
+  { id: 'snip1', title: 'Password Reset Instructions', content: 'To reset your password, please visit [link] and follow the on-screen instructions. If you continue to experience issues, please let us know.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'snip2', title: 'Software Reinstall Guide', content: 'We recommend trying to reinstall the software. Please follow these steps: 1. Uninstall the current version. 2. Restart your computer. 3. Download the latest version from [link]. 4. Install the software. Let us know if this resolves the issue.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'snip3', title: 'Network Troubleshooting Steps', content: 'Please try the following network troubleshooting steps: 1. Restart your modem and router. 2. Check your network cable connections. 3. Try connecting to a different network if possible to isolate the issue. If the problem persists, provide us with details about your network setup.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
 ];
 
 export const mockEquipment: Equipment[] = [
@@ -148,6 +148,8 @@ export const getAllTickets = (): Ticket[] => {
 const NOTES_STORAGE_KEY = 'helpdeskLiteNotes';
 const BOOKMARKS_STORAGE_KEY = 'helpdeskLiteBookmarks';
 const DOCUMENTS_STORAGE_KEY = 'helpdeskLiteDocuments';
+const SNIPPETS_STORAGE_KEY = 'helpdeskLiteSnippets';
+
 
 // Notes
 export const getStoredNotes = (): Note[] => {
@@ -183,4 +185,21 @@ export const getStoredDocuments = (): Document[] => {
 export const storeDocuments = (documents: Document[]): void => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(DOCUMENTS_STORAGE_KEY, JSON.stringify(documents));
+};
+
+// Snippets
+export const getStoredSnippets = (): Snippet[] => {
+  if (typeof window === 'undefined') return initialMockSnippets; // Return default if no window
+  const stored = localStorage.getItem(SNIPPETS_STORAGE_KEY);
+  if (stored) {
+    return JSON.parse(stored);
+  }
+  // If nothing in localStorage, initialize with mock snippets and store them
+  storeSnippets(initialMockSnippets);
+  return initialMockSnippets;
+};
+
+export const storeSnippets = (snippets: Snippet[]): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(SNIPPETS_STORAGE_KEY, JSON.stringify(snippets));
 };

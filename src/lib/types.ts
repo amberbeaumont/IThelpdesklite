@@ -40,6 +40,8 @@ export interface Snippet {
   id: string;
   title: string;
   content: string;
+  createdAt?: string; // ISO string - Added for potential future sorting/display
+  updatedAt?: string; // ISO string - Added for potential future sorting/display
 }
 
 export type EquipmentStatus = "Operational" | "Maintenance" | "Decommissioned";

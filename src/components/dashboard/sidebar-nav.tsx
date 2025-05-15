@@ -11,7 +11,8 @@ import {
   BarChartBig,
   LogOut,
   LifeBuoy,
-  NotebookText, // Added icon
+  NotebookText,
+  ClipboardEdit, // Added icon for Snippets
 } from "lucide-react";
 import {
   SidebarMenu,
@@ -31,7 +32,8 @@ const navItems = [
   { href: "/dashboard/users", label: "Users", icon: Users },
   { href: "/dashboard/equipment", label: "IT Equipment", icon: HardDrive },
   { href: "/dashboard/reports", label: "Reports", icon: BarChartBig },
-  { href: "/dashboard/notes-docs", label: "Notes & Docs", icon: NotebookText }, // New item
+  { href: "/dashboard/notes-docs", label: "Notes & Docs", icon: NotebookText },
+  { href: "/dashboard/snippets", label: "Snippets", icon: ClipboardEdit }, // New item for Snippets
 ];
 
 export function SidebarNav() {

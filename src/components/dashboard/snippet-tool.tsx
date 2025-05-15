@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -8,7 +9,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { mockSnippets } from "@/lib/placeholder-data";
+import { getStoredSnippets } from "@/lib/placeholder-data"; // Updated import
 import type { Snippet } from "@/lib/types";
 import { MessageSquareQuote, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -20,8 +21,24 @@ interface SnippetToolProps {
 export function SnippetTool({ onInsertSnippet }: SnippetToolProps) {
   const [open, setOpen] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [snippets, setSnippets] = React.useState<Snippet[]>([]);
 
-  const filteredSnippets = mockSnippets.filter(
+  React.useEffect(() => {
+    // Load snippets when the popover might be opened or when component mounts
+    // For a more robust solution, consider a global state or context if snippets can change frequently
+    // and need to be reflected immediately without reopening the popover.
+    if (open) {
+      setSnippets(getStoredSnippets());
+    }
+  }, [open]);
+  
+  // Also load on mount in case popover starts open or for initial data fetch
+  React.useEffect(() => {
+    setSnippets(getStoredSnippets());
+  }, []);
+
+
+  const filteredSnippets = snippets.filter(
     (snippet) =>
       snippet.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       snippet.content.toLowerCase().includes(searchTerm.toLowerCase())
@@ -65,7 +82,7 @@ export function SnippetTool({ onInsertSnippet }: SnippetToolProps) {
             ))
           ) : (
             <p className="p-4 text-center text-sm text-muted-foreground">
-              No snippets found.
+              {snippets.length === 0 ? "No snippets created yet." : "No matching snippets found."}
             </p>
           )}
         </ScrollArea>
