@@ -65,3 +65,29 @@ export interface Report {
   generatedAt: Date;
   data: any; // Placeholder for report data structure
 }
+
+// Notes & Docs specific types
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string; // ISO string
+  updatedAt: string; // ISO string
+}
+
+export interface Bookmark {
+  id: string;
+  title: string;
+  url: string;
+  createdAt: string; // ISO string
+}
+
+export interface Document {
+  id:string;
+  name: string;
+  type: string; // MIME type
+  size: number; // in bytes
+  uploadedAt: string; // ISO string
+  equipmentId?: string; // Optional: for future linking to equipment
+  // dataUrl?: string; // If we were to store small files in localStorage (not recommended for large files)
+}

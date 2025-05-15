@@ -1,5 +1,5 @@
 
-import type { Ticket, User, Snippet, ProblemType, Urgency, TicketStatus, Equipment, Report } from './types';
+import type { Ticket, User, Snippet, ProblemType, Urgency, TicketStatus, Equipment, Report, Note, Bookmark, Document } from './types';
 
 export const mockUsers: User[] = [
   { id: 'user1', name: 'Alice Wonderland', email: 'alice@example.com', role: 'User' },
@@ -141,4 +141,46 @@ export const getAllTickets = (): Ticket[] => {
     }
   });
   return combinedTickets.sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+};
+
+// --- Notes & Docs localStorage Helpers ---
+
+const NOTES_STORAGE_KEY = 'helpdeskLiteNotes';
+const BOOKMARKS_STORAGE_KEY = 'helpdeskLiteBookmarks';
+const DOCUMENTS_STORAGE_KEY = 'helpdeskLiteDocuments';
+
+// Notes
+export const getStoredNotes = (): Note[] => {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem(NOTES_STORAGE_KEY);
+  return stored ? JSON.parse(stored) : [];
+};
+
+export const storeNotes = (notes: Note[]): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
+};
+
+// Bookmarks
+export const getStoredBookmarks = (): Bookmark[] => {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem(BOOKMARKS_STORAGE_KEY);
+  return stored ? JSON.parse(stored) : [];
+};
+
+export const storeBookmarks = (bookmarks: Bookmark[]): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify(bookmarks));
+};
+
+// Documents
+export const getStoredDocuments = (): Document[] => {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem(DOCUMENTS_STORAGE_KEY);
+  return stored ? JSON.parse(stored) : [];
+};
+
+export const storeDocuments = (documents: Document[]): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(DOCUMENTS_STORAGE_KEY, JSON.stringify(documents));
 };

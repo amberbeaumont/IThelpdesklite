@@ -1,31 +1,418 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { NotebookText } from "lucide-react";
+"use client";
+
+import * as React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import type { Note, Bookmark, Document } from "@/lib/types";
+import { getStoredNotes, storeNotes, getStoredBookmarks, storeBookmarks, getStoredDocuments, storeDocuments } from "@/lib/placeholder-data";
+import {
+  NotebookText,
+  Bookmark as BookmarkIcon,
+  FileText,
+  PlusCircle,
+  Edit3,
+  Trash2,
+  UploadCloud,
+  Bold, Italic, Underline, List, ListOrdered, Link as LinkIcon, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight
+} from "lucide-react";
+import { format } from "date-fns";
 
 export default function NotesDocsPage() {
+  const { toast } = useToast();
+
+  // State for notes
+  const [notes, setNotes] = React.useState<Note[]>([]);
+  const [currentNote, setCurrentNote] = React.useState<Partial<Note>>({ title: "", content: "" });
+  const [editingNoteId, setEditingNoteId] = React.useState<string | null>(null);
+  const [noteToDelete, setNoteToDelete] = React.useState<Note | null>(null);
+
+  // State for bookmarks
+  const [bookmarks, setBookmarks] = React.useState<Bookmark[]>([]);
+  const [isBookmarkDialogOpen, setIsBookmarkDialogOpen] = React.useState(false);
+  const [currentBookmark, setCurrentBookmark] = React.useState<Partial<Bookmark>>({ title: "", url: "" });
+  const [editingBookmarkId, setEditingBookmarkId] = React.useState<string | null>(null);
+  const [bookmarkToDelete, setBookmarkToDelete] = React.useState<Bookmark | null>(null);
+  
+  // State for documents
+  const [documents, setDocuments] = React.useState<Document[]>([]);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [documentToDelete, setDocumentToDelete] = React.useState<Document | null>(null);
+
+  React.useEffect(() => {
+    setNotes(getStoredNotes());
+    setBookmarks(getStoredBookmarks());
+    setDocuments(getStoredDocuments());
+  }, []);
+
+  // --- Notes Handlers ---
+  const handleNoteChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setCurrentNote(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveNote = () => {
+    if (!currentNote.title?.trim() || !currentNote.content?.trim()) {
+      toast({ title: "Error", description: "Note title and content cannot be empty.", variant: "destructive" });
+      return;
+    }
+    const now = new Date().toISOString();
+    if (editingNoteId) {
+      const updatedNotes = notes.map(n => n.id === editingNoteId ? { ...n, ...currentNote, title: currentNote.title!, content: currentNote.content!, updatedAt: now } as Note : n);
+      setNotes(updatedNotes);
+      storeNotes(updatedNotes);
+      toast({ title: "Note Updated", description: "Your note has been successfully updated." });
+    } else {
+      const newNote: Note = {
+        id: `note-${Date.now()}`,
+        title: currentNote.title!,
+        content: currentNote.content!,
+        createdAt: now,
+        updatedAt: now,
+      };
+      const updatedNotes = [newNote, ...notes];
+      setNotes(updatedNotes);
+      storeNotes(updatedNotes);
+      toast({ title: "Note Added", description: "Your new note has been saved." });
+    }
+    setCurrentNote({ title: "", content: "" });
+    setEditingNoteId(null);
+  };
+
+  const handleEditNote = (note: Note) => {
+    setEditingNoteId(note.id);
+    setCurrentNote({ title: note.title, content: note.content });
+  };
+
+  const handleCancelEditNote = () => {
+    setCurrentNote({ title: "", content: "" });
+    setEditingNoteId(null);
+  };
+  
+  const confirmDeleteNote = () => {
+    if (noteToDelete) {
+      const updatedNotes = notes.filter(n => n.id !== noteToDelete.id);
+      setNotes(updatedNotes);
+      storeNotes(updatedNotes);
+      toast({ title: "Note Deleted", description: `${noteToDelete.title} has been deleted.` });
+      setNoteToDelete(null);
+      if (editingNoteId === noteToDelete.id) handleCancelEditNote();
+    }
+  };
+
+  // --- Bookmarks Handlers ---
+  const handleBookmarkFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setCurrentBookmark(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveBookmark = () => {
+    if (!currentBookmark.title?.trim() || !currentBookmark.url?.trim()) {
+      toast({ title: "Error", description: "Bookmark title and URL cannot be empty.", variant: "destructive" });
+      return;
+    }
+    if (!currentBookmark.url.match(/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i)) {
+        toast({ title: "Error", description: "Please enter a valid URL (e.g., http://example.com).", variant: "destructive"});
+        return;
+    }
+
+    const now = new Date().toISOString();
+    if (editingBookmarkId) {
+      const updatedBookmarks = bookmarks.map(b => b.id === editingBookmarkId ? { ...b, title: currentBookmark.title!, url: currentBookmark.url! } as Bookmark : b);
+      setBookmarks(updatedBookmarks);
+      storeBookmarks(updatedBookmarks);
+      toast({ title: "Bookmark Updated" });
+    } else {
+      const newBookmark: Bookmark = {
+        id: `bookmark-${Date.now()}`,
+        title: currentBookmark.title!,
+        url: currentBookmark.url!,
+        createdAt: now,
+      };
+      const updatedBookmarks = [newBookmark, ...bookmarks];
+      setBookmarks(updatedBookmarks);
+      storeBookmarks(updatedBookmarks);
+      toast({ title: "Bookmark Added" });
+    }
+    setIsBookmarkDialogOpen(false);
+    setCurrentBookmark({ title: "", url: "" });
+    setEditingBookmarkId(null);
+  };
+
+  const handleEditBookmark = (bookmark: Bookmark) => {
+    setEditingBookmarkId(bookmark.id);
+    setCurrentBookmark({ title: bookmark.title, url: bookmark.url });
+    setIsBookmarkDialogOpen(true);
+  };
+  
+  const confirmDeleteBookmark = () => {
+    if (bookmarkToDelete) {
+      const updatedBookmarks = bookmarks.filter(b => b.id !== bookmarkToDelete.id);
+      setBookmarks(updatedBookmarks);
+      storeBookmarks(updatedBookmarks);
+      toast({ title: "Bookmark Deleted", description: `${bookmarkToDelete.title} has been deleted.` });
+      setBookmarkToDelete(null);
+    }
+  };
+
+  // --- Documents Handlers ---
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const newDocument: Document = {
+        id: `doc-${Date.now()}`,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+      };
+      const updatedDocuments = [newDocument, ...documents];
+      setDocuments(updatedDocuments);
+      storeDocuments(updatedDocuments);
+      toast({ title: "File 'Added'", description: `${file.name} has been added to the list.` });
+    }
+    if (fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+  };
+
+  const confirmDeleteDocument = () => {
+    if (documentToDelete) {
+      const updatedDocuments = documents.filter(d => d.id !== documentToDelete.id);
+      setDocuments(updatedDocuments);
+      storeDocuments(updatedDocuments);
+      toast({ title: "Document Deleted", description: `${documentToDelete.name} has been removed from the list.` });
+      setDocumentToDelete(null);
+    }
+  };
+  
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
   return (
     <div className="space-y-6">
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-2">
-            <NotebookText className="h-7 w-7 text-primary" />
-            Notes & Documentation
-          </CardTitle>
-          <CardDescription>
-            Manage internal notes, documentation, and knowledge base articles.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-border rounded-md">
-            <NotebookText className="h-16 w-16 text-muted-foreground mb-4" />
-            <p className="text-xl font-semibold text-muted-foreground">Notes & Docs Feature</p>
-            <p className="text-muted-foreground">This section is currently under development.</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Soon you'll be able to create, organize, and search your team's notes and documents here.
-            </p>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <NotebookText className="h-7 w-7 text-primary" />
+              Notes & Documentation
+            </CardTitle>
+            <CardDescription>
+              Manage internal notes, documentation, bookmarks, and knowledge base articles.
+            </CardDescription>
           </div>
-        </CardContent>
+          <div className="flex gap-2">
+             <Button variant="outline" onClick={() => setIsBookmarkDialogOpen(true)}>
+                <BookmarkIcon className="mr-2 h-4 w-4" /> Add Bookmark
+            </Button>
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                <UploadCloud className="mr-2 h-4 w-4" /> Upload File
+            </Button>
+            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+             {/* The "Add Note" is implicitly part of the note editor */}
+          </div>
+        </CardHeader>
       </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Notes Section (Left Column) */}
+        <Card className="lg:col-span-2 shadow-md bg-sidebar-background text-sidebar-foreground p-0">
+          <CardHeader className="bg-sidebar-background rounded-t-lg">
+            <CardTitle className="text-xl">Notes</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 space-y-4">
+            {/* Note Editor Form */}
+            <div className="space-y-3 p-4 border border-sidebar-border rounded-md bg-background text-foreground">
+              <Input
+                name="title"
+                placeholder="Note Title"
+                value={currentNote.title || ""}
+                onChange={handleNoteChange}
+                className="text-lg font-semibold"
+              />
+              {/* Mock RTE Toolbar */}
+              <div className="flex flex-wrap gap-1 p-2 border-b border-border">
+                  {[
+                    { icon: Bold, label: 'Bold' }, { icon: Italic, label: 'Italic' }, { icon: Underline, label: 'Underline' },
+                    { icon: List, label: 'Bullet List' }, { icon: ListOrdered, label: 'Numbered List' },
+                    { icon: AlignLeft, label: 'Left' }, { icon: AlignCenter, label: 'Center' }, { icon: AlignRight, label: 'Right' },
+                    { icon: LinkIcon, label: 'Link' }, { icon: ImageIcon, label: 'Image' },
+                  ].map(item => (
+                     <Button key={item.label} variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-8 px-2" title={item.label} onClick={() => toast({title: "Mock Action", description:`${item.label} clicked (UI only).`})}> <item.icon className="h-4 w-4" /> </Button>
+                  ))}
+              </div>
+              <Textarea
+                name="content"
+                placeholder="Start writing your note..."
+                value={currentNote.content || ""}
+                onChange={handleNoteChange}
+                className="min-h-[150px] bg-background text-foreground"
+              />
+              <div className="flex justify-end gap-2">
+                {editingNoteId && <Button variant="outline" onClick={handleCancelEditNote}>Cancel</Button>}
+                <Button onClick={handleSaveNote} className="bg-primary hover:bg-primary/90">
+                  {editingNoteId ? "Save Changes" : "Save Note"}
+                </Button>
+              </div>
+            </div>
+
+            {/* List of Existing Notes */}
+            {notes.length > 0 && <h3 className="text-lg font-semibold pt-4 text-sidebar-foreground">Saved Notes:</h3>}
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+              {notes.map(note => (
+                <Card key={note.id} className="bg-background text-foreground">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-md flex justify-between items-center">
+                      {note.title}
+                       <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-primary" onClick={() => handleEditNote(note)}><Edit3 className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-destructive" onClick={() => setNoteToDelete(note)}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                        Last updated: {format(new Date(note.updatedAt), "PP p")}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm whitespace-pre-wrap truncate h-10 group-hover:h-auto">{note.content}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Right Column (Bookmarks & Documents) */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Bookmarks Section */}
+          <Card className="shadow-md bg-accent text-accent-foreground">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <BookmarkIcon className="h-6 w-6" /> Bookmarks
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {bookmarks.length > 0 ? bookmarks.map(bookmark => (
+                <div key={bookmark.id} className="flex items-center justify-between p-2 bg-accent/80 rounded">
+                  <div>
+                    <a href={bookmark.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline truncate block max-w-[180px]" title={bookmark.url}>{bookmark.title}</a>
+                    <p className="text-xs opacity-80">Added: {format(new Date(bookmark.createdAt), "PP")}</p>
+                  </div>
+                  <div className="flex gap-1">
+                     <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent/60" onClick={() => handleEditBookmark(bookmark)}><Edit3 className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent/60" onClick={() => setBookmarkToDelete(bookmark)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                </div>
+              )) : <p className="text-sm opacity-90">No bookmarks added yet.</p>}
+            </CardContent>
+          </Card>
+
+          {/* Documents Section */}
+          <Card className="shadow-md bg-primary/20 border border-primary/50">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2 text-primary">
+                <FileText className="h-6 w-6" /> Documents
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+                {documents.length > 0 ? documents.map(doc => (
+                    <div key={doc.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                        <div>
+                            <p className="font-medium truncate max-w-[180px]" title={doc.name}>{doc.name}</p>
+                            <p className="text-xs text-muted-foreground">{formatFileSize(doc.size)} - Uploaded: {format(new Date(doc.uploadedAt), "PP")}</p>
+                        </div>
+                         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDocumentToDelete(doc)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                )) : <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Bookmark Add/Edit Dialog */}
+      <Dialog open={isBookmarkDialogOpen} onOpenChange={(isOpen) => {
+          if (!isOpen) {
+              setIsBookmarkDialogOpen(false);
+              setCurrentBookmark({ title: "", url: "" });
+              setEditingBookmarkId(null);
+          } else {
+              setIsBookmarkDialogOpen(true);
+          }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingBookmarkId ? "Edit Bookmark" : "Add New Bookmark"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label htmlFor="bookmarkTitle">Title</Label>
+              <Input id="bookmarkTitle" name="title" value={currentBookmark.title || ""} onChange={handleBookmarkFormChange} placeholder="e.g., Google Docs" />
+            </div>
+            <div>
+              <Label htmlFor="bookmarkUrl">URL</Label>
+              <Input id="bookmarkUrl" name="url" type="url" value={currentBookmark.url || ""} onChange={handleBookmarkFormChange} placeholder="https://docs.google.com" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {setIsBookmarkDialogOpen(false); setCurrentBookmark({ title: "", url: "" }); setEditingBookmarkId(null); }}>Cancel</Button>
+            <Button onClick={handleSaveBookmark}>{editingBookmarkId ? "Save Changes" : "Add Bookmark"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialogs */}
+      <AlertDialog open={!!noteToDelete} onOpenChange={() => setNoteToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Delete Note?</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete the note "{noteToDelete?.title}"? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={confirmDeleteNote} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={!!bookmarkToDelete} onOpenChange={() => setBookmarkToDelete(null)}>
+         <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Delete Bookmark?</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete the bookmark "{bookmarkToDelete?.title}"? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={confirmDeleteBookmark} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={!!documentToDelete} onOpenChange={() => setDocumentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Delete Document?</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete the document "{documentToDelete?.name}"? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={confirmDeleteDocument} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
