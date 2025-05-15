@@ -27,7 +27,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  // AlertDialogTrigger, // No longer needed here for the delete button
 } from "@/components/ui/alert-dialog";
 import { UserFormDialog, type UserFormData } from "@/components/dashboard/user-form-dialog";
 import { Users, PlusCircle, Edit3, Trash2, UserCircle2 } from "lucide-react";
@@ -35,7 +34,6 @@ import { mockUsers } from "@/lib/placeholder-data";
 import type { User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -123,7 +121,6 @@ export default function UsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px]">Avatar</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead className="text-center">Role</TableHead>
@@ -133,12 +130,6 @@ export default function UsersPage() {
                 <TableBody>
                   {users.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell>
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={`https://placehold.co/100x100.png?text=${user.name.substring(0,1)}`} alt={user.name} data-ai-hint="avatar person" />
-                          <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                      </TableCell>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell className="text-center">
@@ -156,7 +147,6 @@ export default function UsersPage() {
                         >
                           <Edit3 className="h-4 w-4" />
                         </Button>
-                        {/* Removed AlertDialogTrigger from here */}
                         <Button
                           variant="ghost"
                           size="icon"
