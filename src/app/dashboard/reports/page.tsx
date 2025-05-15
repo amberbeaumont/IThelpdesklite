@@ -4,7 +4,6 @@
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { mockTickets, mockEquipment, mockUsers } from "@/lib/placeholder-data";
@@ -16,11 +15,11 @@ import { useToast } from "@/hooks/use-toast";
 type DataSource = "tickets" | "equipment" | "users" | "";
 
 interface ReportField {
-  key: string; // Unique identifier for the field, e.g., "ticket.id" or "user.name"
-  label: string; // Column header text
-  source: "tickets" | "equipment" | "users"; // Indicates which primary entity this field belongs to
+  key: string; 
+  label: string; 
+  source: "tickets" | "equipment" | "users"; 
   resolve: (
-    primaryItem: any, // Type will be User, Ticket, or Equipment based on dataSource
+    primaryItem: any, 
     allData: { users: User[]; tickets: Ticket[]; equipment: Equipment[] }
   ) => React.ReactNode;
 }
@@ -151,7 +150,6 @@ export default function ReportsPage() {
   
   const [sortConfig, setSortConfig] = React.useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
-  // Regenerate report when selected fields or data source changes
   React.useEffect(() => {
     if (!dataSource || selectedFieldKeys.length === 0) {
         setReportData([]);
@@ -178,14 +176,6 @@ export default function ReportsPage() {
     let processedData = rawData.map(item => {
       const row: Record<string, any> = {};
       currentReportHeaders.forEach(header => {
-        // Ensure the resolve function is called correctly even if header.source !== dataSource
-        // The primaryItem 'item' will be of type matching 'dataSource'.
-        // The resolver for a field must be able to handle this 'item' or use 'allMockData' to find related info.
-        // This is implicitly handled by how TICKET_REPORT_FIELDS, etc., are defined with their specific item types.
-        // If a field from EQUIPMENT_REPORT_FIELDS is selected while dataSource is "tickets", 
-        // its resolver `(item: Equipment, ...)` would error if `item` is a Ticket.
-        // The current setup correctly uses the source from ReportField to determine compatibility.
-        // This should remain as is. The main change is inferring dataSource.
          row[header.key] = header.resolve(item, allMockData);
       });
       return row;
@@ -205,30 +195,38 @@ export default function ReportsPage() {
         if (typeof valA === 'string' && typeof valB === 'string') {
           return sortConfig.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
         }
+        // Fallback for other types (like React nodes which might be objects/booleans)
         const strA = String(valA).toLowerCase();
         const strB = String(valB).toLowerCase();
         return sortConfig.direction === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
       });
     }
-
     setReportData(processedData);
-
   }, [dataSource, selectedFieldKeys, sortConfig]);
 
   const handleFieldSelectionChange = (fieldKey: string) => {
-    setSelectedFieldKeys(prev => {
-      const newSelectedFieldKeys = prev.includes(fieldKey)
-        ? prev.filter(key => key !== fieldKey)
-        : [...prev, fieldKey];
+    setSelectedFieldKeys(prevSelectedKeys => {
+      const isCurrentlySelected = prevSelectedKeys.includes(fieldKey);
+      let newSelectedFieldKeys: string[];
 
-      if (newSelectedFieldKeys.length === 1 && !prev.includes(fieldKey)) {
-        const field = ALL_REPORT_FIELDS_MAP.get(fieldKey);
-        if (field) {
-          setDataSource(field.source as DataSource);
+      if (isCurrentlySelected) {
+        newSelectedFieldKeys = prevSelectedKeys.filter(key => key !== fieldKey);
+      } else {
+        newSelectedFieldKeys = [...prevSelectedKeys, fieldKey]; // Add to end, preserving order
+      }
+
+      if (newSelectedFieldKeys.length > 0) {
+        const firstActualSelectedKey = newSelectedFieldKeys[0];
+        const firstFieldDetails = ALL_REPORT_FIELDS_MAP.get(firstActualSelectedKey);
+        
+        if (firstFieldDetails && (dataSource === "" || dataSource !== firstFieldDetails.source)) {
+          setDataSource(firstFieldDetails.source as DataSource);
         }
-      } else if (newSelectedFieldKeys.length === 0) {
-        setDataSource(""); 
-        setSortConfig({ key: null, direction: 'asc' }); // Reset sort when no fields/datasource
+      } else { 
+        if (dataSource !== "") { 
+          setDataSource("");
+          setSortConfig({ key: null, direction: 'asc' });
+        }
       }
       return newSelectedFieldKeys;
     });
@@ -250,7 +248,7 @@ export default function ReportsPage() {
       <label className="text-sm font-medium block mb-2">{title}</label>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="w-full sm:w-auto justify-between" disabled={fields.length > 0 && !dataSource && selectedFieldKeys.length === 0}>
+          <Button variant="outline" className="w-full sm:w-auto justify-between">
              {`${selectedFieldKeys.filter(key => fields.some(f => f.key === key)).length} / ${fields.length} selected`}
             <ChevronDown className="ml-2 h-4 w-4" />
           </Button>
@@ -264,9 +262,7 @@ export default function ReportsPage() {
               checked={selectedFieldKeys.includes(field.key)}
               onCheckedChange={() => handleFieldSelectionChange(field.key)}
               onSelect={(e) => e.preventDefault()} 
-              // Disable if a dataSource is set and this field's source doesn't match,
-              // unless no dataSource is set yet (meaning this selection will define it).
-              disabled={!!dataSource && field.source !== dataSource && selectedFieldKeys.length > 0 && !selectedFieldKeys.includes(field.key)}
+              disabled={false} // Always enable items
             >
               {field.label}
             </DropdownMenuCheckboxItem>
@@ -301,7 +297,6 @@ export default function ReportsPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
-            {/* Primary Data Source Select removed */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
               {renderFieldSelectorDropdown(TICKET_REPORT_FIELDS, "Ticket Fields")}
               {renderFieldSelectorDropdown(EQUIPMENT_REPORT_FIELDS, "Equipment Fields")}
@@ -373,4 +368,6 @@ export default function ReportsPage() {
     </div>
   );
 }
+    
+
     
