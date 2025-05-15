@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card } from "@/components/ui/card"; // Added import
 import { mockUsers, ticketStatuses, urgencies } from "@/lib/placeholder-data";
 import type { Ticket, TicketStatus, Urgency } from "@/lib/types";
 import { Eye, Filter, CircleAlert, LoaderCircle, UserCircle, CheckCircle2, ChevronDown, Minus, ChevronUp, AlertTriangle } from "lucide-react";
