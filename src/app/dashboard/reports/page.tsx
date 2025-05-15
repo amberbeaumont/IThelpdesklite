@@ -102,7 +102,7 @@ export default function ReportsPage() {
   const { toast } = useToast();
   const [dataSource, setDataSource] = React.useState<DataSource>("");
   const [availableFields, setAvailableFields] = React.useState<ReportField[]>([]);
-  const [selectedFields, setSelectedFields] = React.useState<Record<string, boolean>>({});
+  const [selectedFieldKeys, setSelectedFieldKeys] = React.useState<string[]>([]);
   const [reportData, setReportData] = React.useState<any[]>([]);
   const [reportHeaders, setReportHeaders] = React.useState<ReportField[]>([]);
 
@@ -116,27 +116,37 @@ export default function ReportsPage() {
     } else {
       setAvailableFields([]);
     }
-    setSelectedFields({}); // Reset selected fields when data source changes
+    setSelectedFieldKeys([]); // Reset selected fields when data source changes
     setReportData([]);
     setReportHeaders([]);
   }, [dataSource]);
 
   const handleFieldSelectionChange = (fieldKey: string) => {
-    setSelectedFields(prev => ({ ...prev, [fieldKey]: !prev[fieldKey] }));
+    setSelectedFieldKeys(prev => {
+      if (prev.includes(fieldKey)) {
+        return prev.filter(key => key !== fieldKey);
+      } else {
+        return [...prev, fieldKey];
+      }
+    });
   };
-
-  const handleGenerateReport = () => {
+  
+  React.useEffect(() => {
     if (!dataSource) {
-      toast({ title: "Select Data Source", description: "Please select a data source for the report.", variant: "destructive" });
-      return;
+        setReportData([]);
+        setReportHeaders([]);
+        return;
     }
-    const activeFieldKeys = Object.entries(selectedFields).filter(([,isSelected]) => isSelected).map(([key]) => key);
-    if (activeFieldKeys.length === 0) {
-      toast({ title: "Select Fields", description: "Please select at least one field for the report.", variant: "destructive" });
-      return;
+    if (selectedFieldKeys.length === 0) {
+        setReportData([]);
+        setReportHeaders([]);
+        return;
     }
 
-    const currentReportHeaders = availableFields.filter(field => activeFieldKeys.includes(field.key));
+    const currentReportHeaders = selectedFieldKeys
+      .map(key => availableFields.find(field => field.key === key))
+      .filter((field): field is ReportField => field !== undefined);
+      
     setReportHeaders(currentReportHeaders);
 
     let rawData: any[] = [];
@@ -157,10 +167,11 @@ export default function ReportsPage() {
       return row;
     });
     setReportData(processedData);
-    toast({ title: "Report Generated", description: `Displaying ${processedData.length} records with ${currentReportHeaders.length} fields.` });
-  };
-  
-  const numSelectedFields = Object.values(selectedFields).filter(Boolean).length;
+
+  }, [dataSource, selectedFieldKeys, availableFields]);
+
+
+  const numSelectedFields = selectedFieldKeys.length;
 
   return (
     <div className="space-y-8">
@@ -182,7 +193,7 @@ export default function ReportsPage() {
             <Settings2 className="h-6 w-6 text-primary" />
             Custom Report Builder
           </CardTitle>
-          <CardDescription>Select data source and fields to generate a custom report.</CardDescription>
+          <CardDescription>Select data source and fields to generate a custom report. The table will update as you select fields.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex flex-col sm:flex-row gap-4 items-end">
@@ -215,7 +226,7 @@ export default function ReportsPage() {
                   {availableFields.map(field => (
                     <DropdownMenuCheckboxItem
                       key={field.key}
-                      checked={selectedFields[field.key] || false}
+                      checked={selectedFieldKeys.includes(field.key)}
                       onCheckedChange={() => handleFieldSelectionChange(field.key)}
                       onSelect={(e) => e.preventDefault()} 
                     >
@@ -225,12 +236,10 @@ export default function ReportsPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <Button onClick={handleGenerateReport} disabled={!dataSource || numSelectedFields === 0}>
-              Generate Report
-            </Button>
+            {/* "Generate Report" button is removed as table updates dynamically */}
           </div>
 
-          {reportData.length > 0 && (
+          {dataSource && numSelectedFields > 0 && reportData.length > 0 && (
             <div className="space-y-4">
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={() => toast({title: "Coming Soon!", description: "PDF export will be available in a future update."})}>
@@ -268,6 +277,16 @@ export default function ReportsPage() {
               </Card>
             </div>
           )}
+           {dataSource && numSelectedFields === 0 && (
+            <div className="text-center text-muted-foreground py-8">
+                Please select at least one field to display the report.
+            </div>
+           )}
+            {!dataSource && (
+            <div className="text-center text-muted-foreground py-8">
+                Please select a data source to begin building your report.
+            </div>
+            )}
         </CardContent>
       </Card>
     </div>
