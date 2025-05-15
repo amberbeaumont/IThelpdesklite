@@ -29,9 +29,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { UserFormDialog, type UserFormData } from "@/components/dashboard/user-form-dialog";
+import { UserDetailsDialog } from "@/components/dashboard/user-details-dialog"; // New Import
 import { Users, PlusCircle, Edit3, Trash2, UserCircle2 } from "lucide-react";
-import { mockUsers } from "@/lib/placeholder-data";
-import type { User } from "@/lib/types";
+import { mockUsers, mockTickets, mockEquipment } from "@/lib/placeholder-data"; // Import tickets and equipment
+import type { User, Ticket, Equipment } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
@@ -41,6 +42,9 @@ export default function UsersPage() {
   const [isFormDialogOpen, setIsFormDialogOpen] = React.useState(false);
   const [userToEdit, setUserToEdit] = React.useState<User | null>(null);
   const [userToDeleteId, setUserToDeleteId] = React.useState<string | null>(null);
+  
+  const [selectedUserForDetails, setSelectedUserForDetails] = React.useState<User | null>(null);
+  const [isUserDetailsDialogOpen, setIsUserDetailsDialogOpen] = React.useState(false);
 
   const handleAddUserClick = () => {
     setUserToEdit(null);
@@ -54,6 +58,11 @@ export default function UsersPage() {
 
   const handleDeleteUserClick = (userId: string) => {
     setUserToDeleteId(userId);
+  };
+
+  const handleViewUserDetails = (user: User) => {
+    setSelectedUserForDetails(user);
+    setIsUserDetailsDialogOpen(true);
   };
 
   const confirmDeleteUser = () => {
@@ -108,7 +117,7 @@ export default function UsersPage() {
               User Management
             </CardTitle>
             <CardDescription>
-              Manage users and their roles within the HelpDesk Lite system.
+              Manage users and their roles within the HelpDesk Lite system. Click a user row to view details.
             </CardDescription>
           </div>
           <Button onClick={handleAddUserClick}>
@@ -129,7 +138,11 @@ export default function UsersPage() {
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => (
-                    <TableRow key={user.id}>
+                    <TableRow 
+                      key={user.id} 
+                      onClick={() => handleViewUserDetails(user)}
+                      className="cursor-pointer hover:bg-muted/50"
+                    >
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell className="text-center">
@@ -141,7 +154,7 @@ export default function UsersPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleEditUserClick(user)}
+                          onClick={(e) => { e.stopPropagation(); handleEditUserClick(user);}}
                           className="mr-2 hover:text-primary"
                           aria-label={`Edit user ${user.name}`}
                         >
@@ -150,7 +163,7 @@ export default function UsersPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteUserClick(user.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteUserClick(user.id);}}
                           className="hover:text-destructive"
                           aria-label={`Delete user ${user.name}`}
                         >
@@ -181,6 +194,19 @@ export default function UsersPage() {
         userToEdit={userToEdit}
         onSave={handleSaveUser}
       />
+
+      {selectedUserForDetails && (
+        <UserDetailsDialog
+          isOpen={isUserDetailsDialogOpen}
+          onClose={() => {
+            setIsUserDetailsDialogOpen(false);
+            setSelectedUserForDetails(null);
+          }}
+          user={selectedUserForDetails}
+          tickets={mockTickets}
+          equipment={mockEquipment}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!userToDeleteId} onOpenChange={(open) => !open && setUserToDeleteId(null)}>
