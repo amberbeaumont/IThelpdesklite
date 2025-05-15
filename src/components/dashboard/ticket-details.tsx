@@ -46,6 +46,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, CheckIcon as LucideCheckIcon } from "lucide-react"; // Renamed to avoid conflict
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ClientOnly } from "@/components/client-only";
 
 
 const commentFormSchema = z.object({
@@ -53,6 +55,9 @@ const commentFormSchema = z.object({
   isInternalNote: z.boolean().optional(),
 });
 type CommentFormValues = z.infer<typeof commentFormSchema>;
+
+const RHF_UNASSIGNED_VALUE = ""; // Value used by react-hook-form for "unassigned"
+const SELECT_ITEM_UNASSIGNED_VALUE = "__SELECT_ITEM_UNASSIGNED__"; // Unique, non-empty string for the SelectItem
 
 const updateTicketFormSchema = z.object({
   status: z.enum(ticketStatuses as [TicketStatus, ...TicketStatus[]]),
@@ -96,7 +101,7 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
     resolver: zodResolver(updateTicketFormSchema),
     defaultValues: {
       status: ticket.status,
-      assignedTo: ticket.assignedTo || "",
+      assignedTo: ticket.assignedTo || RHF_UNASSIGNED_VALUE,
     },
   });
   
@@ -106,7 +111,7 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
     setTicket(rehydratedTicket);
     updateTicketForm.reset({
       status: rehydratedTicket.status,
-      assignedTo: rehydratedTicket.assignedTo || "",
+      assignedTo: rehydratedTicket.assignedTo || RHF_UNASSIGNED_VALUE,
     });
   }, [initialTicket, updateTicketForm]);
 
@@ -121,27 +126,31 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
   const updateTicketInLocalStorage = (updatedTicket: Ticket) => {
     if (typeof window !== 'undefined') {
       const storedTicketsRaw = localStorage.getItem("submittedTickets");
-      let storedTickets: Ticket[] = storedTicketsRaw ? JSON.parse(storedTicketsRaw) : [];
+      let storedTicketsData: Ticket[] = storedTicketsRaw ? JSON.parse(storedTicketsRaw) : [];
       
-      // Find and update the ticket or add if it's a mock ticket not yet in localStorage
-      const ticketIndex = storedTickets.findIndex(t => t.id === updatedTicket.id);
+      // Convert stored string dates to Date objects for comparison if necessary, or just keep as strings for storage
+      const ticketIndex = storedTicketsData.findIndex(t => t.id === updatedTicket.id);
+
+      // Prepare ticket for storage (ensure dates are ISO strings)
+      const ticketToStore = {
+        ...updatedTicket,
+        createdAt: new Date(updatedTicket.createdAt).toISOString(),
+        updatedAt: new Date(updatedTicket.updatedAt).toISOString(),
+        comments: updatedTicket.comments.map(c => ({...c, createdAt: new Date(c.createdAt).toISOString()}))
+      };
+      
       if (ticketIndex > -1) {
-        storedTickets[ticketIndex] = {
-          ...updatedTicket,
-          createdAt: new Date(updatedTicket.createdAt).toISOString(),
-          updatedAt: new Date(updatedTicket.updatedAt).toISOString(),
-          comments: updatedTicket.comments.map(c => ({...c, createdAt: new Date(c.createdAt).toISOString()}))
-        };
+        storedTicketsData[ticketIndex] = ticketToStore;
       } else {
-        // This case handles mock tickets that are updated for the first time
-        // For simplicity, if you only edit tickets from localStorage, this might not be needed.
-        // Or, ensure mockTickets are also "promoted" to localStorage on first edit.
-        // For now, this mainly targets tickets that were originally from localStorage.
+        // If it's a mock ticket not yet in localStorage, add it.
+        // This path might not be strictly necessary if only tickets from `getAllTickets` (which includes localStorage) are shown on this page.
+        // However, it's safer to handle this.
+        const allCurrentTickets = JSON.parse(localStorage.getItem("allTickets") || "[]") as Ticket[];
+        if(!allCurrentTickets.find(t=> t.id === updatedTicket.id)){ // A bit redundant, but ensures we only add if truly new to local storage scope
+             storedTicketsData.push(ticketToStore);
+        }
       }
-      // Also need to update the main mockTickets array if we want changes to reflect everywhere
-      // This part is tricky without a global state manager.
-      // For now, focusing on localStorage for submitted tickets.
-      localStorage.setItem("submittedTickets", JSON.stringify(storedTickets));
+      localStorage.setItem("submittedTickets", JSON.stringify(storedTicketsData));
     }
   };
 
@@ -182,6 +191,7 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
       const updatedTicket = { 
         ...prev, 
         ...data, 
+        assignedTo: data.assignedTo === RHF_UNASSIGNED_VALUE ? undefined : data.assignedTo, // Store undefined if unassigned
         updatedAt: new Date() 
       };
       updateTicketInLocalStorage(updatedTicket);
@@ -195,6 +205,7 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
   const itSupportUsers = mockUsers.filter(user => user.role === "IT_Support");
 
   return (
+    <ClientOnly>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Ticket Info & Comments */}
       <div className="lg:col-span-2 space-y-6">
@@ -357,14 +368,23 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Assign To</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <Select 
+                        onValueChange={(valueFromSelect) => {
+                          if (valueFromSelect === SELECT_ITEM_UNASSIGNED_VALUE) {
+                            field.onChange(RHF_UNASSIGNED_VALUE);
+                          } else {
+                            field.onChange(valueFromSelect);
+                          }
+                        }} 
+                        value={field.value === RHF_UNASSIGNED_VALUE ? SELECT_ITEM_UNASSIGNED_VALUE : field.value || SELECT_ITEM_UNASSIGNED_VALUE}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select IT staff" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Unassigned</SelectItem>
+                          <SelectItem value={SELECT_ITEM_UNASSIGNED_VALUE}>Unassigned</SelectItem>
                           {itSupportUsers.map(user => (
                             <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
                           ))}
@@ -455,5 +475,7 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
         </Card>
       </div>
     </div>
+    </ClientOnly>
   );
 }
+
