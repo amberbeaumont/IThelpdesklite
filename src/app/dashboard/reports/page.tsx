@@ -151,13 +151,6 @@ export default function ReportsPage() {
   
   const [sortConfig, setSortConfig] = React.useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
-
-  // Reset selected fields and sort when data source changes
-  React.useEffect(() => {
-    setSelectedFieldKeys([]);
-    setSortConfig({ key: null, direction: 'asc' });
-  }, [dataSource]);
-  
   // Regenerate report when selected fields or data source changes
   React.useEffect(() => {
     if (!dataSource || selectedFieldKeys.length === 0) {
@@ -185,7 +178,15 @@ export default function ReportsPage() {
     let processedData = rawData.map(item => {
       const row: Record<string, any> = {};
       currentReportHeaders.forEach(header => {
-        row[header.key] = header.resolve(item, allMockData);
+        // Ensure the resolve function is called correctly even if header.source !== dataSource
+        // The primaryItem 'item' will be of type matching 'dataSource'.
+        // The resolver for a field must be able to handle this 'item' or use 'allMockData' to find related info.
+        // This is implicitly handled by how TICKET_REPORT_FIELDS, etc., are defined with their specific item types.
+        // If a field from EQUIPMENT_REPORT_FIELDS is selected while dataSource is "tickets", 
+        // its resolver `(item: Equipment, ...)` would error if `item` is a Ticket.
+        // The current setup correctly uses the source from ReportField to determine compatibility.
+        // This should remain as is. The main change is inferring dataSource.
+         row[header.key] = header.resolve(item, allMockData);
       });
       return row;
     });
@@ -204,7 +205,6 @@ export default function ReportsPage() {
         if (typeof valA === 'string' && typeof valB === 'string') {
           return sortConfig.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
         }
-        // Fallback for other types (e.g. boolean, or mixed, or ReactNodes that stringify predictably)
         const strA = String(valA).toLowerCase();
         const strB = String(valB).toLowerCase();
         return sortConfig.direction === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
@@ -216,11 +216,22 @@ export default function ReportsPage() {
   }, [dataSource, selectedFieldKeys, sortConfig]);
 
   const handleFieldSelectionChange = (fieldKey: string) => {
-    setSelectedFieldKeys(prev => 
-      prev.includes(fieldKey) 
-        ? prev.filter(key => key !== fieldKey) 
-        : [...prev, fieldKey]
-    );
+    setSelectedFieldKeys(prev => {
+      const newSelectedFieldKeys = prev.includes(fieldKey)
+        ? prev.filter(key => key !== fieldKey)
+        : [...prev, fieldKey];
+
+      if (newSelectedFieldKeys.length === 1 && !prev.includes(fieldKey)) {
+        const field = ALL_REPORT_FIELDS_MAP.get(fieldKey);
+        if (field) {
+          setDataSource(field.source as DataSource);
+        }
+      } else if (newSelectedFieldKeys.length === 0) {
+        setDataSource(""); 
+        setSortConfig({ key: null, direction: 'asc' }); // Reset sort when no fields/datasource
+      }
+      return newSelectedFieldKeys;
+    });
   };
   
   const numSelectedFields = selectedFieldKeys.length;
@@ -234,13 +245,13 @@ export default function ReportsPage() {
     });
   };
 
-  const renderFieldSelectorDropdown = (fields: ReportField[], title: string, idSuffix: string) => (
+  const renderFieldSelectorDropdown = (fields: ReportField[], title: string) => (
     <div className="flex-1 space-y-2">
       <label className="text-sm font-medium block mb-2">{title}</label>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="w-full sm:w-auto justify-between" disabled={!dataSource}>
-            {`${selectedFieldKeys.filter(key => fields.some(f => f.key === key)).length} / ${fields.length} selected`}
+          <Button variant="outline" className="w-full sm:w-auto justify-between" disabled={fields.length > 0 && !dataSource && selectedFieldKeys.length === 0}>
+             {`${selectedFieldKeys.filter(key => fields.some(f => f.key === key)).length} / ${fields.length} selected`}
             <ChevronDown className="ml-2 h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -253,6 +264,9 @@ export default function ReportsPage() {
               checked={selectedFieldKeys.includes(field.key)}
               onCheckedChange={() => handleFieldSelectionChange(field.key)}
               onSelect={(e) => e.preventDefault()} 
+              // Disable if a dataSource is set and this field's source doesn't match,
+              // unless no dataSource is set yet (meaning this selection will define it).
+              disabled={!!dataSource && field.source !== dataSource && selectedFieldKeys.length > 0 && !selectedFieldKeys.includes(field.key)}
             >
               {field.label}
             </DropdownMenuCheckboxItem>
@@ -272,7 +286,7 @@ export default function ReportsPage() {
             Reports & Analytics
           </CardTitle>
           <CardDescription>
-            Select a primary data source, then choose fields from Tickets, Equipment, or Users to build your report. Column order is based on selection. Click headers to sort.
+            Select fields from Tickets, Equipment, or Users to build your report. The first field selected will determine the report's primary data focus. Column order is based on selection. Click headers to sort.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -287,27 +301,13 @@ export default function ReportsPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
-            <div className="flex-1 space-y-2">
-              <label htmlFor="dataSource" className="text-sm font-medium">Primary Data Source (defines report rows)</label>
-              <Select value={dataSource} onValueChange={(value) => setDataSource(value as DataSource)}>
-                <SelectTrigger id="dataSource">
-                  <SelectValue placeholder="Select data source" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tickets">Tickets</SelectItem>
-                  <SelectItem value="equipment">Equipment</SelectItem>
-                  <SelectItem value="users">Users</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
+            {/* Primary Data Source Select removed */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-              {renderFieldSelectorDropdown(TICKET_REPORT_FIELDS, "Ticket Fields", "tickets")}
-              {renderFieldSelectorDropdown(EQUIPMENT_REPORT_FIELDS, "Equipment Fields", "equipment")}
-              {renderFieldSelectorDropdown(USER_REPORT_FIELDS, "User Fields", "users")}
+              {renderFieldSelectorDropdown(TICKET_REPORT_FIELDS, "Ticket Fields")}
+              {renderFieldSelectorDropdown(EQUIPMENT_REPORT_FIELDS, "Equipment Fields")}
+              {renderFieldSelectorDropdown(USER_REPORT_FIELDS, "User Fields")}
             </div>
           </div>
-
 
           {dataSource && numSelectedFields > 0 && reportData.length > 0 && (
             <div className="space-y-4 pt-6">
@@ -358,16 +358,16 @@ export default function ReportsPage() {
               </Card>
             </div>
           )}
-           {dataSource && numSelectedFields === 0 && (
+           {numSelectedFields === 0 && (
             <div className="text-center text-muted-foreground py-8">
-                Please select at least one field from any category to display the report.
+                Please select at least one field from any category to build a report. The first field chosen will set the report's focus.
             </div>
            )}
-            {!dataSource && (
-            <div className="text-center text-muted-foreground py-8">
-                Please select a primary data source to begin building your report.
+           {dataSource && numSelectedFields > 0 && reportData.length === 0 && (
+             <div className="text-center text-muted-foreground py-8">
+                No data available for the selected fields and data focus.
             </div>
-            )}
+           )}
         </CardContent>
       </Card>
     </div>
