@@ -1,12 +1,28 @@
+
+"use client"; // Added "use client"
+
+import * as React from 'react'; // Added React import
 import { StatusSummaryCards } from "@/components/dashboard/status-summary-cards";
 import { TicketList } from "@/components/dashboard/ticket-list";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockTickets, mockUsers } from "@/lib/placeholder-data";
+import { mockUsers, getAllTickets } from "@/lib/placeholder-data"; // Updated import for tickets
+import type { Ticket } from '@/lib/types'; // Added Ticket type import
 import { Activity } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardPage() {
-  const recentTickets = mockTickets.sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 5);
+  const [allTicketsData, setAllTicketsData] = React.useState<Ticket[]>([]);
+
+  React.useEffect(() => {
+    setAllTicketsData(getAllTickets());
+  }, []);
+
+  const recentTickets = React.useMemo(() => 
+    allTicketsData
+      .sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 5),
+  [allTicketsData]);
+  
   const itUser = mockUsers.find(u => u.role === 'IT_Support') || { name: "IT Team Member" };
 
   return (
@@ -22,7 +38,7 @@ export default function DashboardPage() {
         </Link>
       </div>
       
-      <StatusSummaryCards tickets={mockTickets} />
+      <StatusSummaryCards tickets={allTicketsData} />
 
       <Card className="shadow-md">
         <CardHeader>

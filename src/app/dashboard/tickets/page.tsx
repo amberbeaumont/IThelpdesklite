@@ -1,33 +1,35 @@
 
-"use client"; // Required for searchParams and client-side filtering logic
+"use client"; 
 
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link'; // Import Link
+import Link from 'next/link'; 
 import { TicketList } from "@/components/dashboard/ticket-list";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button"; // Import Button
-import { mockTickets } from "@/lib/placeholder-data";
-import type { TicketStatus } from '@/lib/types';
-import { ClipboardList, PlusCircle } from 'lucide-react'; // Import PlusCircle
+import { Button } from "@/components/ui/button"; 
+import { getAllTickets } from "@/lib/placeholder-data"; // Updated import
+import type { Ticket, TicketStatus } from '@/lib/types';
+import { ClipboardList, PlusCircle } from 'lucide-react'; 
 import * as React from 'react';
 
 export default function AllTicketsPage() {
   const searchParams = useSearchParams();
   const statusParam = searchParams.get('status') as TicketStatus | null;
+  const [displayedTickets, setDisplayedTickets] = React.useState<Ticket[]>([]);
 
-  // This effect is illustrative if TicketList needed to re-fetch or re-filter based on param
-  // Since TicketList handles its own filtering including status, direct prop passing might not be needed
-  // Or, TicketList could accept an initialStatusFilter prop.
-  // For now, TicketList's internal filter will pick up the status from its own Select component.
-  // If we wanted cards to directly set the filter state of TicketList, more complex state sharing or URL param handling within TicketList would be needed.
-  // This page component mainly serves as a container for the full TicketList.
+  React.useEffect(() => {
+    // Load all tickets (mock + localStorage)
+    const allTicketsData = getAllTickets();
+    setDisplayedTickets(allTicketsData);
+  }, []);
 
-  const initialFilteredTickets = React.useMemo(() => {
+  // This memo is for initial filtering if statusParam is present on first load
+  // TicketList itself handles further filtering.
+  const initialFilteredTicketsForList = React.useMemo(() => {
     if (statusParam) {
-      return mockTickets.filter(ticket => ticket.status === statusParam);
+      return displayedTickets.filter(ticket => ticket.status === statusParam);
     }
-    return mockTickets;
-  }, [statusParam]);
+    return displayedTickets;
+  }, [statusParam, displayedTickets]);
 
 
   return (
@@ -51,14 +53,7 @@ export default function AllTicketsPage() {
           </Link>
         </CardHeader>
         <CardContent>
-          {/* 
-            If StatusSummaryCards navigation should pre-filter this list, 
-            TicketList needs to accept `initialStatusFilter` prop and use it.
-            For simplicity, TicketList currently has its own independent filters.
-            Let's pass initialTickets which could be pre-filtered by statusParam
-            and allow TicketList's own filters to further refine or change.
-          */}
-          <TicketList initialTickets={mockTickets} />
+          <TicketList initialTickets={initialFilteredTicketsForList} />
         </CardContent>
       </Card>
     </div>

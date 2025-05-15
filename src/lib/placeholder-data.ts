@@ -1,3 +1,4 @@
+
 import type { Ticket, User, Snippet, ProblemType, Urgency, TicketStatus, Equipment, Report } from './types';
 
 export const mockUsers: User[] = [
@@ -11,6 +12,8 @@ export const problemTypes: ProblemType[] = ["Hardware", "Software", "Network", "
 export const urgencies: Urgency[] = ["Low", "Medium", "High", "Critical"];
 export const ticketStatuses: TicketStatus[] = ["Open", "In Progress", "Waiting on User", "Closed"];
 
+// Note: Dates are now stored as ISO strings for easier localStorage handling.
+// They should be converted back to Date objects when read for display/logic.
 export const mockTickets: Ticket[] = [
   {
     id: 'TKT001',
@@ -23,10 +26,10 @@ export const mockTickets: Ticket[] = [
     attachmentUrl: undefined,
     status: 'Open',
     assignedTo: 'it1',
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     comments: [
-      { id: 'c1', userId: 'it1', userName: 'Charlie Root', comment: 'Looking into this now.', createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) }
+      { id: 'c1', userId: 'it1', userName: 'Charlie Root', comment: 'Looking into this now.', createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() }
     ],
   },
   {
@@ -40,10 +43,10 @@ export const mockTickets: Ticket[] = [
     attachmentUrl: 'https://picsum.photos/seed/printererror/200/300',
     status: 'In Progress',
     assignedTo: 'it2',
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-    updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     comments: [
-      { id: 'c2', userId: 'it2', userName: 'Diana Prince', comment: 'Scheduled a technician visit for tomorrow morning.', createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000) }
+      { id: 'c2', userId: 'it2', userName: 'Diana Prince', comment: 'Scheduled a technician visit for tomorrow morning.', createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() }
     ],
   },
   {
@@ -56,10 +59,10 @@ export const mockTickets: Ticket[] = [
     message: 'The internet seems to be very slow every day after 2 PM. It makes video calls difficult.',
     status: 'Waiting on User',
     assignedTo: 'it1',
-    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
-    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     comments: [
-      { id: 'c3', userId: 'it1', userName: 'Charlie Root', comment: 'Could you please run a speed test next time this happens and share the results?', createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) }
+      { id: 'c3', userId: 'it1', userName: 'Charlie Root', comment: 'Could you please run a speed test next time this happens and share the results?', createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() }
     ],
   },
   {
@@ -72,11 +75,11 @@ export const mockTickets: Ticket[] = [
     message: 'I am locked out of my account and I have an urgent deadline today. Please help ASAP!',
     status: 'Closed',
     assignedTo: 'it2',
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-    updatedAt: new Date(Date.now() - 20 * 60 * 60 * 1000), // 20 hours ago
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
     comments: [
-      { id: 'c4_1', userId: 'it2', userName: 'Diana Prince', comment: 'Password reset initiated. Please check your email.', createdAt: new Date(Date.now() - 22 * 60 * 60 * 1000) },
-      { id: 'c4_2', userId: 'user2', userName: 'Bob The Builder', comment: 'Got it, thanks! I can log in now.', createdAt: new Date(Date.now() - 20 * 60 * 60 * 1000) }
+      { id: 'c4_1', userId: 'it2', userName: 'Diana Prince', comment: 'Password reset initiated. Please check your email.', createdAt: new Date(Date.now() - 22 * 60 * 60 * 1000).toISOString() },
+      { id: 'c4_2', userId: 'user2', userName: 'Bob The Builder', comment: 'Got it, thanks! I can log in now.', createdAt: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString() }
     ],
   },
 ];
@@ -88,12 +91,54 @@ export const mockSnippets: Snippet[] = [
 ];
 
 export const mockEquipment: Equipment[] = [
-    { id: 'EQP001', name: 'Dell XPS 15', type: 'Laptop', serialNumber: 'DXPS15-001', assignedTo: 'user1', purchaseDate: new Date('2023-01-15'), status: 'Operational' },
-    { id: 'EQP002', name: 'HP LaserJet Pro M404dn', type: 'Printer', serialNumber: 'HPLJP-002', purchaseDate: new Date('2022-06-20'), status: 'Operational' },
-    { id: 'EQP003', name: 'Cisco Catalyst 2960', type: 'Switch', serialNumber: 'CISCO-003', purchaseDate: new Date('2021-11-05'), status: 'Maintenance' },
+    { id: 'EQP001', name: 'Dell XPS 15', type: 'Laptop', serialNumber: 'DXPS15-001', assignedTo: 'user1', purchaseDate: new Date('2023-01-15').toISOString(), status: 'Operational' },
+    { id: 'EQP002', name: 'HP LaserJet Pro M404dn', type: 'Printer', serialNumber: 'HPLJP-002', purchaseDate: new Date('2022-06-20').toISOString(), status: 'Operational' },
+    { id: 'EQP003', name: 'Cisco Catalyst 2960', type: 'Switch', serialNumber: 'CISCO-003', purchaseDate: new Date('2021-11-05').toISOString(), status: 'Maintenance' },
 ];
 
 export const mockReports: Report[] = [
     { id: 'REP001', title: 'Monthly Ticket Resolution Times', generatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), data: { averageResolutionTime: '4.5 hours', totalTicketsClosed: 150 } },
     { id: 'REP002', title: 'Hardware Failure Rates Q1', generatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), data: { laptops: '2%', desktops: '1%', printers: '5%' } },
 ];
+
+// Helper to parse stored tickets from localStorage
+export const getStoredTickets = (): Ticket[] => {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem('submittedTickets');
+  if (stored) {
+    try {
+      return JSON.parse(stored).map((t: any) => ({
+        ...t,
+        createdAt: new Date(t.createdAt),
+        updatedAt: new Date(t.updatedAt),
+        comments: Array.isArray(t.comments) ? t.comments.map((c: any) => ({
+          ...c,
+          createdAt: new Date(c.createdAt),
+        })) : [],
+      }));
+    } catch (e) {
+      console.error("Error parsing stored tickets:", e);
+      return [];
+    }
+  }
+  return [];
+};
+
+// Helper to combine mock tickets and stored tickets
+export const getAllTickets = (): Ticket[] => {
+  const storedTickets = getStoredTickets();
+  const allMockTickets = mockTickets.map(t => ({
+    ...t,
+    createdAt: new Date(t.createdAt),
+    updatedAt: new Date(t.updatedAt),
+    comments: t.comments.map(c => ({...c, createdAt: new Date(c.createdAt)})),
+  }));
+  
+  const combinedTickets = [...storedTickets];
+  allMockTickets.forEach(mockTicket => {
+    if (!storedTickets.find(st => st.id === mockTicket.id)) {
+      combinedTickets.push(mockTicket);
+    }
+  });
+  return combinedTickets.sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+};

@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -42,8 +43,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, CheckIcon as LucideCheckIcon } from "lucide-react"; // Renamed to avoid conflict
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
 
 
 const commentFormSchema = z.object({
@@ -62,10 +64,24 @@ interface TicketDetailsProps {
   ticket: Ticket;
 }
 
+// Helper to rehydrate dates from localStorage string format
+const rehydrateTicketDates = (ticketData: Ticket): Ticket => {
+  return {
+    ...ticketData,
+    createdAt: new Date(ticketData.createdAt),
+    updatedAt: new Date(ticketData.updatedAt),
+    comments: ticketData.comments.map(comment => ({
+      ...comment,
+      createdAt: new Date(comment.createdAt),
+    })),
+  };
+};
+
+
 export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
   const { toast } = useToast();
   const commentTextareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const [ticket, setTicket] = React.useState<Ticket>(initialTicket);
+  const [ticket, setTicket] = React.useState<Ticket>(rehydrateTicketDates(initialTicket));
   const [isSubmittingComment, setIsSubmittingComment] = React.useState(false);
   const [isUpdatingTicket, setIsUpdatingTicket] = React.useState(false);
   const [eventDate, setEventDate] = React.useState<Date | undefined>();
@@ -85,11 +101,14 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
   });
   
   React.useEffect(() => {
+    // When initialTicket prop changes, rehydrate and reset the local state and forms
+    const rehydratedTicket = rehydrateTicketDates(initialTicket);
+    setTicket(rehydratedTicket);
     updateTicketForm.reset({
-      status: ticket.status,
-      assignedTo: ticket.assignedTo || "",
+      status: rehydratedTicket.status,
+      assignedTo: rehydratedTicket.assignedTo || "",
     });
-  }, [ticket, updateTicketForm]);
+  }, [initialTicket, updateTicketForm]);
 
 
   const handleInsertSnippet = (content: string) => {
@@ -98,19 +117,58 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
     commentTextareaRef.current?.focus();
   };
 
+  // Function to update localStorage after ticket modifications
+  const updateTicketInLocalStorage = (updatedTicket: Ticket) => {
+    if (typeof window !== 'undefined') {
+      const storedTicketsRaw = localStorage.getItem("submittedTickets");
+      let storedTickets: Ticket[] = storedTicketsRaw ? JSON.parse(storedTicketsRaw) : [];
+      
+      // Find and update the ticket or add if it's a mock ticket not yet in localStorage
+      const ticketIndex = storedTickets.findIndex(t => t.id === updatedTicket.id);
+      if (ticketIndex > -1) {
+        storedTickets[ticketIndex] = {
+          ...updatedTicket,
+          createdAt: new Date(updatedTicket.createdAt).toISOString(),
+          updatedAt: new Date(updatedTicket.updatedAt).toISOString(),
+          comments: updatedTicket.comments.map(c => ({...c, createdAt: new Date(c.createdAt).toISOString()}))
+        };
+      } else {
+        // This case handles mock tickets that are updated for the first time
+        // For simplicity, if you only edit tickets from localStorage, this might not be needed.
+        // Or, ensure mockTickets are also "promoted" to localStorage on first edit.
+        // For now, this mainly targets tickets that were originally from localStorage.
+      }
+      // Also need to update the main mockTickets array if we want changes to reflect everywhere
+      // This part is tricky without a global state manager.
+      // For now, focusing on localStorage for submitted tickets.
+      localStorage.setItem("submittedTickets", JSON.stringify(storedTickets));
+    }
+  };
+
+
   async function onCommentSubmit(data: CommentFormValues) {
     setIsSubmittingComment(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
+    
     const newComment = {
       id: `comment-${Date.now()}`,
-      userId: 'it1', // Mock current IT user
+      userId: 'it1', 
       userName: mockUsers.find(u => u.id === 'it1')?.name || "IT Staff",
       comment: data.comment,
       createdAt: new Date(),
       isInternalNote: data.isInternalNote,
     };
-    setTicket(prev => ({ ...prev, comments: [...prev.comments, newComment], updatedAt: new Date() }));
+
+    setTicket(prev => {
+      const updatedTicket = { 
+        ...prev, 
+        comments: [...prev.comments, newComment], 
+        updatedAt: new Date() 
+      };
+      updateTicketInLocalStorage(updatedTicket);
+      return updatedTicket;
+    });
+
     toast({ title: "Comment Added", description: "Your comment has been posted." });
     commentForm.reset();
     setIsSubmittingComment(false);
@@ -118,9 +176,18 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
 
   async function onUpdateTicketSubmit(data: UpdateTicketFormValues) {
     setIsUpdatingTicket(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    setTicket(prev => ({ ...prev, ...data, updatedAt: new Date() }));
+    
+    setTicket(prev => {
+      const updatedTicket = { 
+        ...prev, 
+        ...data, 
+        updatedAt: new Date() 
+      };
+      updateTicketInLocalStorage(updatedTicket);
+      return updatedTicket;
+    });
+
     toast({ title: "Ticket Updated", description: `Status set to ${data.status}, Assigned to ${mockUsers.find(u => u.id === data.assignedTo)?.name || 'Unassigned'}.` });
     setIsUpdatingTicket(false);
   }
@@ -145,12 +212,18 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
               <h4 className="font-semibold mb-1">Original Message:</h4>
               <p className="text-sm whitespace-pre-wrap bg-muted p-3 rounded-md">{ticket.message}</p>
             </div>
-            {ticket.attachmentUrl && (
+            {(ticket.attachmentName || ticket.attachmentUrl) && (
               <div>
                 <h4 className="font-semibold mb-1">Attachment:</h4>
-                <Link href={ticket.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                  <Paperclip className="h-4 w-4" /> View Attachment
-                </Link>
+                {ticket.attachmentUrl ? (
+                     <Link href={ticket.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                        <Paperclip className="h-4 w-4" /> View Attachment
+                    </Link>
+                ) : (
+                    <span className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Paperclip className="h-4 w-4" /> {ticket.attachmentName} (File not uploaded in demo)
+                    </span>
+                )}
               </div>
             )}
           </CardContent>
@@ -163,7 +236,7 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             {ticket.comments.length > 0 ? (
-              <ScrollArea className="h-64 pr-3">
+              <ScrollArea className="h-64 pr-3"> {/* Ensure ScrollArea has a defined height */}
                 <div className="space-y-4">
                 {ticket.comments.map((comment) => (
                   <div key={comment.id} className={`p-3 rounded-md ${comment.isInternalNote ? 'bg-yellow-50 border-l-4 border-yellow-400' : 'bg-secondary/50'}`}>
@@ -211,28 +284,26 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
                   control={commentForm.control}
                   name="isInternalNote"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 pt-1">
                       <FormControl>
-                         {/* Using a div for checkbox like behavior due to ShadCN checkbox structure */}
                         <div
                           onClick={() => field.onChange(!field.value)}
                           className={cn(
-                            "peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground cursor-pointer mt-1",
+                            "peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground cursor-pointer",
                             field.value && "bg-primary text-primary-foreground"
                           )}
                           data-state={field.value ? "checked" : "unchecked"}
                           tabIndex={0}
                           role="checkbox"
                           aria-checked={field.value}
+                          onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') field.onChange(!field.value);}}
                         >
-                          {field.value && <CheckIcon className="h-4 w-4" />}
+                          {field.value && <LucideCheckIcon className="h-4 w-4" />}
                         </div>
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="cursor-pointer">
+                      <FormLabel className="cursor-pointer text-sm font-normal" htmlFor={field.name}>
                           Mark as internal note (visible to IT staff only)
-                        </FormLabel>
-                      </div>
+                      </FormLabel>
                     </FormItem>
                   )}
                 />
@@ -286,7 +357,7 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Assign To</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select IT staff" />
@@ -386,22 +457,3 @@ export function TicketDetails({ ticket: initialTicket }: TicketDetailsProps) {
     </div>
   );
 }
-
-// Placeholder CheckIcon as it seems to be missing from lucide-react in the provided context or specific version
-const CheckIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-

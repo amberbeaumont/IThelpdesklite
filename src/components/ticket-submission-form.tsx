@@ -26,7 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { problemTypes, urgencies } from "@/lib/placeholder-data";
-import type { ProblemType, Urgency } from "@/lib/types";
+import type { ProblemType, Urgency, Ticket } from "@/lib/types";
 import { Paperclip, Send } from "lucide-react";
 import { ClientOnly } from "./client-only";
 
@@ -69,12 +69,36 @@ export function TicketSubmissionForm() {
     setIsSubmitting(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
-    console.log("Ticket submitted:", data);
-
-    // In a real app, you would call a server action here:
-    // e.g. const result = await submitTicketAction(data);
-    // if (result.success) { ... } else { ... }
     
+    const newTicket: Omit<Ticket, 'attachment'> & { attachmentName?: string } = {
+      id: `TKT-${Date.now()}`,
+      requesterName: data.name,
+      requesterEmail: data.email,
+      problemType: data.problemType,
+      urgency: data.urgency,
+      subject: data.subject,
+      message: data.message,
+      attachmentName: data.attachment && data.attachment.length > 0 ? data.attachment[0].name : undefined,
+      // attachmentUrl will be undefined as we are not actually uploading
+      status: "Open",
+      assignedTo: undefined,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      comments: [],
+    };
+
+    try {
+      if (typeof window !== 'undefined') {
+        const storedTicketsRaw = localStorage.getItem("submittedTickets");
+        const storedTickets: Ticket[] = storedTicketsRaw ? JSON.parse(storedTicketsRaw) : [];
+        storedTickets.push(newTicket as Ticket);
+        localStorage.setItem("submittedTickets", JSON.stringify(storedTickets));
+      }
+    } catch (error) {
+      console.error("Failed to save ticket to localStorage", error);
+      // Optionally, inform the user that saving to local storage failed but submission was "successful"
+    }
+
     toast({
       title: "Ticket Submitted!",
       description: "Your support ticket has been successfully submitted. We will get back to you shortly.",
@@ -228,7 +252,7 @@ export function TicketSubmissionForm() {
                   />
                 </FormControl>
                 <FormDescription>
-                  Max file size: 5MB. Allowed types: JPG, PNG, PDF, DOCX.
+                  Max file size: 5MB. Allowed types: JPG, PNG, PDF, DOCX. (Not actually uploaded in this demo)
                 </FormDescription>
                 <FormMessage />
               </ClientOnly>

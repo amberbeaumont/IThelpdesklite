@@ -1,23 +1,34 @@
-"use client"; // Needed for useParams or dynamic data fetching hooks
 
+"use client"; 
+
+import * as React from 'react'; // Added React import
 import { TicketDetails } from "@/components/dashboard/ticket-details";
-import { mockTickets } from "@/lib/placeholder-data";
+import { getAllTickets } from "@/lib/placeholder-data"; // Updated import
+import type { Ticket } from '@/lib/types'; // Added Ticket import
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
-// In a real app, you'd fetch ticket data here based on the ID.
-// export async function generateStaticParams() {
-//   return mockTickets.map((ticket) => ({
-//     id: ticket.id,
-//   }));
-// }
 
 export default function SingleTicketPage({ params }: { params: { id: string } }) {
-  const ticket = mockTickets.find((t) => t.id === params.id);
+  const [ticket, setTicket] = React.useState<Ticket | undefined | null>(undefined); // null for not found
 
-  if (!ticket) {
+  React.useEffect(() => {
+    const allTickets = getAllTickets();
+    const foundTicket = allTickets.find((t) => t.id === params.id);
+    setTicket(foundTicket || null); // Set to null if not found after checking
+  }, [params.id]);
+
+  if (ticket === undefined) { // Still loading
+    return (
+        <div className="flex flex-col items-center justify-center h-full p-8">
+             <p>Loading ticket details...</p>
+        </div>
+    );
+  }
+
+  if (!ticket) { // Not found
     return (
         <div className="flex flex-col items-center justify-center h-full p-8">
             <Card className="w-full max-w-md text-center shadow-lg">

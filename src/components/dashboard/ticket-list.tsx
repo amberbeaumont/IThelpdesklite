@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card"; // CardContent might be needed if we want to use Card's padding
+import { Card, CardContent } from "@/components/ui/card"; 
 import { mockUsers, ticketStatuses, urgencies } from "@/lib/placeholder-data";
 import type { Ticket, TicketStatus, Urgency } from "@/lib/types";
 import { Eye, Filter, CircleAlert, LoaderCircle, UserCircle, CheckCircle2, ChevronDown, Minus, ChevronUp, AlertTriangle } from "lucide-react";
@@ -42,7 +42,7 @@ const urgencyIcons: Record<Urgency, React.ReactElement> = {
 const getStatusBadgeVariant = (status: TicketStatus): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
     case "Open": return "destructive";
-    case "In Progress": return "default"; // using primary as default
+    case "In Progress": return "default"; 
     case "Waiting on User": return "secondary";
     case "Closed": return "outline";
     default: return "default";
@@ -53,9 +53,21 @@ export function TicketList({ initialTickets }: TicketListProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<TicketStatus | "all">("all");
   const [urgencyFilter, setUrgencyFilter] = React.useState<Urgency | "all">("all");
+  const [currentTickets, setCurrentTickets] = React.useState<Ticket[]>([]);
+
+  React.useEffect(() => {
+    // Convert date strings to Date objects for initialTickets
+    const processedTickets = initialTickets.map(ticket => ({
+      ...ticket,
+      createdAt: new Date(ticket.createdAt),
+      updatedAt: new Date(ticket.updatedAt),
+    }));
+    setCurrentTickets(processedTickets);
+  }, [initialTickets]);
+
 
   const filteredTickets = React.useMemo(() => {
-    return initialTickets.filter((ticket) => {
+    return currentTickets.filter((ticket) => {
       const searchMatch =
         ticket.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -65,7 +77,7 @@ export function TicketList({ initialTickets }: TicketListProps) {
       const urgencyMatch = urgencyFilter === "all" || ticket.urgency === urgencyFilter;
       return searchMatch && statusMatch && urgencyMatch;
     });
-  }, [initialTickets, searchTerm, statusFilter, urgencyFilter]);
+  }, [currentTickets, searchTerm, statusFilter, urgencyFilter]);
 
   const getAssigneeName = (userId?: string) => {
     if (!userId) return "Unassigned";
@@ -107,8 +119,6 @@ export function TicketList({ initialTickets }: TicketListProps) {
       </div>
 
       <Card>
-        {/* The Table component itself handles overflow and styling, so CardContent might not be strictly necessary unless specific Card padding is desired. */}
-        {/* If Card's default padding is desired around the table, wrap <Table> with <CardContent>. For now, assuming table takes full Card width. */}
         <Table>
             <TableHeader>
             <TableRow>
@@ -166,4 +176,3 @@ export function TicketList({ initialTickets }: TicketListProps) {
     </div>
   );
 }
-

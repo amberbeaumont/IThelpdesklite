@@ -18,12 +18,12 @@ export interface Ticket {
   urgency: Urgency;
   subject: string;
   message: string;
-  attachment?: File | null; // For client-side handling
+  attachmentName?: string; // Store filename for localStorage
   attachmentUrl?: string; // For stored file
   status: TicketStatus;
   assignedTo?: User["id"]; // IT Support User ID
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | string; // Allow string for JSON parsing
+  updatedAt: Date | string; // Allow string for JSON parsing
   comments: TicketComment[];
 }
 
@@ -32,7 +32,7 @@ export interface TicketComment {
   userId: User["id"];
   userName: string;
   comment: string;
-  createdAt: Date;
+  createdAt: Date | string; // Allow string for JSON parsing
   isInternalNote?: boolean;
 }
 
@@ -55,7 +55,7 @@ export interface Equipment {
   type: string; // Can be one of commonEquipmentTypes or custom
   serialNumber: string;
   assignedTo?: User["id"];
-  purchaseDate: Date;
+  purchaseDate: Date | string; // Allow string for JSON parsing
   status: EquipmentStatus;
 }
 
@@ -65,4 +65,3 @@ export interface Report {
   generatedAt: Date;
   data: any; // Placeholder for report data structure
 }
-
