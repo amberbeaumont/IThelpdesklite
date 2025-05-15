@@ -140,6 +140,33 @@ const ALL_REPORT_FIELDS_MAP = new Map<string, ReportField>(
   ALL_REPORT_FIELDS.map(field => [field.key, field])
 );
 
+// Helper function to extract text from React nodes for CSV export
+function getNodeText(node: React.ReactNode): string {
+  if (node === null || node === undefined || typeof node === 'boolean') {
+    return '';
+  }
+  if (typeof node === 'string' || typeof node === 'number') {
+    return String(node);
+  }
+  if (Array.isArray(node)) {
+    return node.map(getNodeText).join('');
+  }
+  if (React.isValidElement(node) && node.props.children) {
+    // Basic attempt to get text from components like <Badge>Text</Badge>
+    // This might need refinement for more complex components.
+    return getNodeText(node.props.children);
+  }
+  // Fallback for other React element types or complex objects
+  if (React.isValidElement(node) && (node.type === 'svg' || typeof node.type === 'function')) {
+    // Try to get 'aria-label' if it's an icon or a component that might have one
+    if (node.props['aria-label']) return String(node.props['aria-label']);
+    // For specific components like Badge, we might already be handling children above.
+    // For other functional components without simple text children, return placeholder.
+    return `[${typeof node.type === 'function' ? node.type.name || 'Component' : 'Element'}]`;
+  }
+  return ''; // Or some placeholder like '[Object]'
+}
+
 
 export default function ReportsPage() {
   const { toast } = useToast();
@@ -183,8 +210,9 @@ export default function ReportsPage() {
 
     if (sortConfig.key) {
       processedData.sort((a, b) => {
-        const valA = a[sortConfig.key!];
-        const valB = b[sortConfig.key!];
+        // For sorting, try to get primitive values if possible, or stringify nodes
+        const valA = typeof a[sortConfig.key!] !== 'object' ? a[sortConfig.key!] : getNodeText(a[sortConfig.key!]);
+        const valB = typeof b[sortConfig.key!] !== 'object' ? b[sortConfig.key!] : getNodeText(b[sortConfig.key!]);
 
         if (valA === null || valA === undefined) return sortConfig.direction === 'asc' ? -1 : 1;
         if (valB === null || valB === undefined) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -221,6 +249,10 @@ export default function ReportsPage() {
         
         if (firstFieldDetails && (dataSource === "" || dataSource !== firstFieldDetails.source)) {
           setDataSource(firstFieldDetails.source as DataSource);
+          // If the data source changes, we might want to clear fields not related to the new source,
+          // or more simply, let the user manage it. For now, just set the source.
+          // Optionally, filter newSelectedFieldKeys to only those matching the new source:
+          // newSelectedFieldKeys = newSelectedFieldKeys.filter(key => ALL_REPORT_FIELDS_MAP.get(key)?.source === firstFieldDetails.source);
         }
       } else { 
         if (dataSource !== "") { 
@@ -243,6 +275,45 @@ export default function ReportsPage() {
     });
   };
 
+  const exportToCSV = () => {
+    if (reportData.length === 0 || reportHeaders.length === 0) {
+      toast({ title: "No data to export", description: "Please generate a report first.", variant: "destructive" });
+      return;
+    }
+
+    const escapeCSVCell = (cellData: any): string => {
+      const text = getNodeText(cellData); // Use helper to get text from ReactNode
+      const result = String(text).replace(/"/g, '""'); // Escape double quotes
+      if (result.includes(',')) {
+        return `"${result}"`; // Enclose in double quotes if it contains a comma
+      }
+      return result;
+    };
+    
+    const headerRow = reportHeaders.map(header => escapeCSVCell(header.label)).join(',');
+    const dataRows = reportData.map(row => 
+      reportHeaders.map(header => escapeCSVCell(row[header.key])).join(',')
+    );
+
+    const csvContent = [headerRow, ...dataRows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `report-${dataSource || 'custom'}-${new Date().toISOString().slice(0,10)}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: "CSV Exported", description: "The report has been downloaded as a CSV file." });
+    } else {
+        toast({ title: "Export Failed", description: "Your browser does not support this export method.", variant: "destructive"});
+    }
+  };
+
+
   const renderFieldSelectorDropdown = (fields: ReportField[], title: string) => (
     <div className="flex-1 space-y-2">
       <label className="text-sm font-medium block mb-2">{title}</label>
@@ -262,7 +333,6 @@ export default function ReportsPage() {
               checked={selectedFieldKeys.includes(field.key)}
               onCheckedChange={() => handleFieldSelectionChange(field.key)}
               onSelect={(e) => e.preventDefault()} 
-              disabled={false} // Always enable items
             >
               {field.label}
             </DropdownMenuCheckboxItem>
@@ -282,7 +352,7 @@ export default function ReportsPage() {
             Reports & Analytics
           </CardTitle>
           <CardDescription>
-            Select fields from Tickets, Equipment, or Users to build your report. The first field selected will determine the report's primary data focus. Column order is based on selection. Click headers to sort.
+            Select fields from Tickets, Equipment, or Users to build your report. The first field selected will determine the report's primary data focus (what each row represents). Column order is based on selection order. Click table headers to sort.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -310,7 +380,7 @@ export default function ReportsPage() {
                 <Button variant="outline" size="sm" onClick={() => toast({title: "Coming Soon!", description: "PDF export will be available in a future update."})}>
                   <FileText className="mr-2 h-4 w-4" /> Export PDF
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => toast({title: "Coming Soon!", description: "CSV export will be available in a future update."})}>
+                <Button variant="outline" size="sm" onClick={exportToCSV}>
                   <FileSpreadsheet className="mr-2 h-4 w-4" /> Export CSV
                 </Button>
               </div>
@@ -371,3 +441,5 @@ export default function ReportsPage() {
     
 
     
+
+      
