@@ -1,11 +1,14 @@
+
 "use client"; // Required for searchParams and client-side filtering logic
 
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link'; // Import Link
 import { TicketList } from "@/components/dashboard/ticket-list";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button"; // Import Button
 import { mockTickets } from "@/lib/placeholder-data";
 import type { TicketStatus } from '@/lib/types';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, PlusCircle } from 'lucide-react'; // Import PlusCircle
 import * as React from 'react';
 
 export default function AllTicketsPage() {
@@ -30,15 +33,22 @@ export default function AllTicketsPage() {
   return (
     <div className="space-y-6">
       <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-2">
-            <ClipboardList className="h-7 w-7 text-primary" />
-            Manage All Tickets
-          </CardTitle>
-          <CardDescription>
-            View, filter, and manage all support tickets.
-            {statusParam && <span className="block mt-1">Currently filtered by status: <strong>{statusParam}</strong>.</span>}
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <ClipboardList className="h-7 w-7 text-primary" />
+              Manage All Tickets
+            </CardTitle>
+            <CardDescription>
+              View, filter, and manage all support tickets.
+              {statusParam && <span className="block mt-1">Currently filtered by status: <strong>{statusParam}</strong>.</span>}
+            </CardDescription>
+          </div>
+          <Link href="/dashboard/tickets/new" passHref>
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" /> New Ticket
+            </Button>
+          </Link>
         </CardHeader>
         <CardContent>
           {/* 
