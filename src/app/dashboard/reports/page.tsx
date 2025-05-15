@@ -2,76 +2,117 @@
 "use client";
 
 import * as React from "react";
-// Removed RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer as they are only used by the removed charts.
-// ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent are also removed if no other charts use them.
-// For now, assuming they might be used if user wants to add other charts later, but if not, they can be cleaned up.
-// Update: Since we are removing the only charts using these, they can be removed.
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { mockTickets, mockEquipment, mockUsers } from "@/lib/placeholder-data"; // Removed ticketStatuses, problemTypes as they were for the charts
-import type { Ticket, Equipment, User } from "@/lib/types"; // Removed TicketStatus, ProblemType
-import { BarChartBig, ChevronDown, FileText, FileSpreadsheet, Settings2 } from "lucide-react"; // Removed Activity, AlertTriangle
+import { mockTickets, mockEquipment, mockUsers } from "@/lib/placeholder-data";
+import type { Ticket, Equipment, User } from "@/lib/types";
+import { BarChartBig, ChevronDown, FileText, FileSpreadsheet, Settings2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
-// Removed statusColors and problemTypeColors as they were for the charts
+type DataSource = "tickets" | "equipment" | "users" | "";
 
-type DataSource = "tickets" | "equipment" | "";
-
-interface FieldDefinition {
-  key: string;
-  label: string;
-  formatter?: (value: any, item: any) => string | React.ReactNode;
+interface ReportField {
+  key: string; // Unique identifier for the field
+  label: string; // Column header text
+  resolve: (
+    primaryItem: any, // Type will be User, Ticket, or Equipment based on dataSource
+    allData: { users: User[]; tickets: Ticket[]; equipment: Equipment[] }
+  ) => React.ReactNode;
 }
 
-const TICKET_FIELDS: FieldDefinition[] = [
-  { key: "id", label: "Ticket ID" },
-  { key: "subject", label: "Subject" },
-  { key: "requesterName", label: "Requester Name" },
-  { key: "requesterEmail", label: "Requester Email" },
-  { key: "problemType", label: "Problem Type" },
-  { key: "urgency", label: "Urgency" },
-  { key: "status", label: "Status" },
-  { 
-    key: "assignedTo", 
+const TICKET_REPORT_FIELDS: ReportField[] = [
+  { key: "ticket.id", label: "Ticket ID", resolve: (item: Ticket) => item.id },
+  { key: "ticket.subject", label: "Subject", resolve: (item: Ticket) => item.subject },
+  { key: "ticket.requesterName", label: "Requester Name", resolve: (item: Ticket) => item.requesterName },
+  { key: "ticket.requesterEmail", label: "Requester Email", resolve: (item: Ticket) => item.requesterEmail },
+  { key: "ticket.problemType", label: "Problem Type", resolve: (item: Ticket) => item.problemType },
+  { key: "ticket.urgency", label: "Urgency", resolve: (item: Ticket) => item.urgency },
+  { key: "ticket.status", label: "Status", resolve: (item: Ticket) => item.status },
+  {
+    key: "ticket.assignedToName",
     label: "Assigned To",
-    formatter: (userId: string) => mockUsers.find(u => u.id === userId)?.name || "Unassigned"
+    resolve: (item: Ticket, allData) => {
+      if (!item.assignedTo) return "Unassigned";
+      const user = allData.users.find(u => u.id === item.assignedTo);
+      return user ? user.name : "Unknown User";
+    }
   },
-  { key: "createdAt", label: "Created At", formatter: (date: Date) => format(new Date(date), "PP p") },
-  { key: "updatedAt", label: "Last Updated", formatter: (date: Date) => format(new Date(date), "PP p") },
+  { key: "ticket.createdAt", label: "Created At", resolve: (item: Ticket) => format(new Date(item.createdAt), "PP p") },
+  { key: "ticket.updatedAt", label: "Last Updated", resolve: (item: Ticket) => format(new Date(item.updatedAt), "PP p") },
 ];
 
-const EQUIPMENT_FIELDS: FieldDefinition[] = [
-  { key: "id", label: "Equipment ID" },
-  { key: "name", label: "Name" },
-  { key: "type", label: "Type" },
-  { key: "serialNumber", label: "Serial Number" },
-  { 
-    key: "assignedTo", 
-    label: "Assigned To",
-    formatter: (userId: string) => mockUsers.find(u => u.id === userId)?.name || "Unassigned"
+const EQUIPMENT_REPORT_FIELDS: ReportField[] = [
+  { key: "equipment.id", label: "Equipment ID", resolve: (item: Equipment) => item.id },
+  { key: "equipment.name", label: "Name", resolve: (item: Equipment) => item.name },
+  { key: "equipment.type", label: "Type", resolve: (item: Equipment) => item.type },
+  { key: "equipment.serialNumber", label: "Serial Number", resolve: (item: Equipment) => item.serialNumber },
+  {
+    key: "equipment.assignedToName",
+    label: "Assigned To User",
+    resolve: (item: Equipment, allData) => {
+      if (!item.assignedTo) return "Unassigned";
+      const user = allData.users.find(u => u.id === item.assignedTo);
+      return user ? user.name : "Unknown User";
+    }
   },
-  { key: "purchaseDate", label: "Purchase Date", formatter: (date: Date) => format(new Date(date), "PP") },
-  { key: "status", label: "Status" },
+   {
+    key: "equipment.assignedToEmail",
+    label: "Assigned User Email",
+    resolve: (item: Equipment, allData) => {
+      if (!item.assignedTo) return "N/A";
+      const user = allData.users.find(u => u.id === item.assignedTo);
+      return user ? user.email : "Unknown User";
+    }
+  },
+  { key: "equipment.purchaseDate", label: "Purchase Date", resolve: (item: Equipment) => format(new Date(item.purchaseDate), "PP") },
+  { key: "equipment.status", label: "Status", resolve: (item: Equipment) => item.status },
+];
+
+const USER_REPORT_FIELDS: ReportField[] = [
+  { key: "user.id", label: "User ID", resolve: (item: User) => item.id },
+  { key: "user.name", label: "Name", resolve: (item: User) => item.name },
+  { key: "user.email", label: "Email", resolve: (item: User) => item.email },
+  { key: "user.role", label: "Role", resolve: (item: User) => item.role },
+  {
+    key: "user.openTicketsCount",
+    label: "Open Tickets Count",
+    resolve: (item: User, allData) => {
+      return allData.tickets.filter(t => t.requesterEmail === item.email && t.status !== "Closed").length;
+    }
+  },
+  {
+    key: "user.assignedEquipment",
+    label: "Assigned Equipment (Names)",
+    resolve: (item: User, allData) => {
+      const equipmentNames = allData.equipment
+        .filter(eq => eq.assignedTo === item.id)
+        .map(eq => eq.name)
+        .join(", ");
+      return equipmentNames || "None";
+    }
+  },
 ];
 
 
 export default function ReportsPage() {
   const { toast } = useToast();
   const [dataSource, setDataSource] = React.useState<DataSource>("");
-  const [availableFields, setAvailableFields] = React.useState<FieldDefinition[]>([]);
+  const [availableFields, setAvailableFields] = React.useState<ReportField[]>([]);
   const [selectedFields, setSelectedFields] = React.useState<Record<string, boolean>>({});
   const [reportData, setReportData] = React.useState<any[]>([]);
-  const [reportHeaders, setReportHeaders] = React.useState<FieldDefinition[]>([]);
+  const [reportHeaders, setReportHeaders] = React.useState<ReportField[]>([]);
 
   React.useEffect(() => {
     if (dataSource === "tickets") {
-      setAvailableFields(TICKET_FIELDS);
+      setAvailableFields(TICKET_REPORT_FIELDS);
     } else if (dataSource === "equipment") {
-      setAvailableFields(EQUIPMENT_FIELDS);
+      setAvailableFields(EQUIPMENT_REPORT_FIELDS);
+    } else if (dataSource === "users") {
+      setAvailableFields(USER_REPORT_FIELDS);
     } else {
       setAvailableFields([]);
     }
@@ -98,17 +139,20 @@ export default function ReportsPage() {
     const currentReportHeaders = availableFields.filter(field => activeFieldKeys.includes(field.key));
     setReportHeaders(currentReportHeaders);
 
-    let rawData = [];
+    let rawData: any[] = [];
     if (dataSource === "tickets") {
       rawData = mockTickets;
     } else if (dataSource === "equipment") {
       rawData = mockEquipment;
+    } else if (dataSource === "users") {
+      rawData = mockUsers;
     }
 
+    const allMockData = { users: mockUsers, tickets: mockTickets, equipment: mockEquipment };
     const processedData = rawData.map(item => {
       const row: Record<string, any> = {};
       currentReportHeaders.forEach(header => {
-        row[header.key] = item[header.key];
+        row[header.key] = header.resolve(item, allMockData);
       });
       return row;
     });
@@ -117,8 +161,6 @@ export default function ReportsPage() {
   };
   
   const numSelectedFields = Object.values(selectedFields).filter(Boolean).length;
-
-  // ---- Removed chart data and config ----
 
   return (
     <div className="space-y-8">
@@ -134,7 +176,6 @@ export default function ReportsPage() {
         </CardHeader>
       </Card>
 
-      {/* Custom Report Builder */}
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2">
@@ -154,6 +195,7 @@ export default function ReportsPage() {
                 <SelectContent>
                   <SelectItem value="tickets">Tickets</SelectItem>
                   <SelectItem value="equipment">Equipment</SelectItem>
+                  <SelectItem value="users">Users</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -175,7 +217,7 @@ export default function ReportsPage() {
                       key={field.key}
                       checked={selectedFields[field.key] || false}
                       onCheckedChange={() => handleFieldSelectionChange(field.key)}
-                      onSelect={(e) => e.preventDefault()} // Prevent menu closing on item select
+                      onSelect={(e) => e.preventDefault()} 
                     >
                       {field.label}
                     </DropdownMenuCheckboxItem>
@@ -214,7 +256,7 @@ export default function ReportsPage() {
                           <TableRow key={rowIndex}>
                             {reportHeaders.map(header => (
                               <TableCell key={`${rowIndex}-${header.key}`}>
-                                {header.formatter ? header.formatter(row[header.key], row) : row[header.key]}
+                                {row[header.key]}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -228,8 +270,6 @@ export default function ReportsPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Existing Charts Removed */}
     </div>
   );
 }
