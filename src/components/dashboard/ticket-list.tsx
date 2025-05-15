@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -14,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card } from "@/components/ui/card"; // Added import
+import { Card, CardContent } from "@/components/ui/card"; // CardContent might be needed if we want to use Card's padding
 import { mockUsers, ticketStatuses, urgencies } from "@/lib/placeholder-data";
 import type { Ticket, TicketStatus, Urgency } from "@/lib/types";
 import { Eye, Filter, CircleAlert, LoaderCircle, UserCircle, CheckCircle2, ChevronDown, Minus, ChevronUp, AlertTriangle } from "lucide-react";
@@ -106,58 +107,63 @@ export function TicketList({ initialTickets }: TicketListProps) {
       </div>
 
       <Card>
-        <TableHeader>
-          <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>Subject</TableHead>
-            <TableHead>Requester</TableHead>
-            <TableHead className="text-center">Status</TableHead>
-            <TableHead className="text-center">Urgency</TableHead>
-            <TableHead>Assigned To</TableHead>
-            <TableHead>Last Updated</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredTickets.length > 0 ? (
-            filteredTickets.map((ticket) => (
-              <TableRow key={ticket.id}>
-                <TableCell className="font-medium">{ticket.id}</TableCell>
-                <TableCell className="max-w-xs truncate">{ticket.subject}</TableCell>
-                <TableCell>{ticket.requesterName}</TableCell>
-                <TableCell className="text-center">
-                  <Badge variant={getStatusBadgeVariant(ticket.status)} className="flex items-center gap-1 w-fit mx-auto">
-                    {statusIcons[ticket.status]}
-                    {ticket.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                     {urgencyIcons[ticket.urgency]}
-                     {ticket.urgency}
-                    </div>
-                </TableCell>
-                <TableCell>{getAssigneeName(ticket.assignedTo)}</TableCell>
-                <TableCell>{formatDistanceToNow(new Date(ticket.updatedAt), { addSuffix: true })}</TableCell>
-                <TableCell className="text-right">
-                  <Button asChild variant="ghost" size="icon">
-                    <Link href={`/dashboard/tickets/${ticket.id}`}>
-                      <Eye className="h-4 w-4" />
-                      <span className="sr-only">View Ticket</span>
-                    </Link>
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))
-          ) : (
+        {/* The Table component itself handles overflow and styling, so CardContent might not be strictly necessary unless specific Card padding is desired. */}
+        {/* If Card's default padding is desired around the table, wrap <Table> with <CardContent>. For now, assuming table takes full Card width. */}
+        <Table>
+            <TableHeader>
             <TableRow>
-              <TableCell colSpan={8} className="h-24 text-center">
-                No tickets found.
-              </TableCell>
+                <TableHead>ID</TableHead>
+                <TableHead>Subject</TableHead>
+                <TableHead>Requester</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-center">Urgency</TableHead>
+                <TableHead>Assigned To</TableHead>
+                <TableHead>Last Updated</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          )}
-        </TableBody>
+            </TableHeader>
+            <TableBody>
+            {filteredTickets.length > 0 ? (
+                filteredTickets.map((ticket) => (
+                <TableRow key={ticket.id}>
+                    <TableCell className="font-medium">{ticket.id}</TableCell>
+                    <TableCell className="max-w-xs truncate">{ticket.subject}</TableCell>
+                    <TableCell>{ticket.requesterName}</TableCell>
+                    <TableCell className="text-center">
+                    <Badge variant={getStatusBadgeVariant(ticket.status)} className="flex items-center gap-1 w-fit mx-auto">
+                        {statusIcons[ticket.status]}
+                        {ticket.status}
+                    </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                        {urgencyIcons[ticket.urgency]}
+                        {ticket.urgency}
+                        </div>
+                    </TableCell>
+                    <TableCell>{getAssigneeName(ticket.assignedTo)}</TableCell>
+                    <TableCell>{formatDistanceToNow(new Date(ticket.updatedAt), { addSuffix: true })}</TableCell>
+                    <TableCell className="text-right">
+                    <Button asChild variant="ghost" size="icon">
+                        <Link href={`/dashboard/tickets/${ticket.id}`}>
+                        <Eye className="h-4 w-4" />
+                        <span className="sr-only">View Ticket</span>
+                        </Link>
+                    </Button>
+                    </TableCell>
+                </TableRow>
+                ))
+            ) : (
+                <TableRow>
+                <TableCell colSpan={8} className="h-24 text-center">
+                    No tickets found.
+                </TableCell>
+                </TableRow>
+            )}
+            </TableBody>
+        </Table>
       </Card>
     </div>
   );
 }
+
