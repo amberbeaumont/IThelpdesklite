@@ -18,7 +18,6 @@ import {
   SidebarMenuButton,
   SidebarHeader,
   SidebarFooter,
-  SidebarTrigger,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -52,7 +51,7 @@ export function SidebarNav() {
             <LifeBuoy className="h-8 w-8 text-primary" />
             <h1 className="text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">HelpDesk Lite</h1>
         </div>
-        <SidebarTrigger className="text-sidebar-foreground hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden" />
+        {/* SidebarTrigger removed from here */}
       </SidebarHeader>
       
       <SidebarMenu className="flex-1 p-2">
