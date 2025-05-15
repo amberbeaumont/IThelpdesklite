@@ -48,6 +48,7 @@ import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ClientOnly } from "@/components/client-only";
+import { Badge } from "@/components/ui/badge"; // Added import
 
 
 const commentFormSchema = z.object({
