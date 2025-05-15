@@ -27,7 +27,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
+  // AlertDialogTrigger, // No longer needed here for the delete button
 } from "@/components/ui/alert-dialog";
 import { UserFormDialog, type UserFormData } from "@/components/dashboard/user-form-dialog";
 import { Users, PlusCircle, Edit3, Trash2, UserCircle2 } from "lucide-react";
@@ -156,17 +156,16 @@ export default function UsersPage() {
                         >
                           <Edit3 className="h-4 w-4" />
                         </Button>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteUserClick(user.id)}
-                            className="hover:text-destructive"
-                            aria-label={`Delete user ${user.name}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
+                        {/* Removed AlertDialogTrigger from here */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteUserClick(user.id)}
+                          className="hover:text-destructive"
+                          aria-label={`Delete user ${user.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
