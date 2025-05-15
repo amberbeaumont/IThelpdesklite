@@ -34,7 +34,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns"; // Removed parseISO as it's not used
 import type { Equipment, User, EquipmentStatus } from "@/lib/types";
 import { equipmentStatuses, commonEquipmentTypes } from "@/lib/types";
 import { ClientOnly } from "@/components/client-only";
@@ -60,6 +60,10 @@ interface EquipmentFormDialogProps {
   users: User[];
 }
 
+// Constants for handling "Unassigned" state in the Select component
+const RHF_UNASSIGNED_VALUE = ""; // Value used by react-hook-form for "unassigned"
+const SELECT_ITEM_UNASSIGNED_VALUE = "__SELECT_ITEM_UNASSIGNED__"; // Unique, non-empty string for the SelectItem
+
 export function EquipmentFormDialog({
   isOpen,
   onClose,
@@ -73,7 +77,7 @@ export function EquipmentFormDialog({
       name: "",
       type: "",
       serialNumber: "",
-      assignedTo: "",
+      assignedTo: RHF_UNASSIGNED_VALUE, // Default to unassigned using RHF value
       purchaseDate: undefined,
       status: "Operational",
     },
@@ -85,14 +89,14 @@ export function EquipmentFormDialog({
         form.reset({
           ...equipmentToEdit,
           purchaseDate: equipmentToEdit.purchaseDate ? new Date(equipmentToEdit.purchaseDate) : undefined,
-          assignedTo: equipmentToEdit.assignedTo || "",
+          assignedTo: equipmentToEdit.assignedTo || RHF_UNASSIGNED_VALUE,
         });
       } else {
         form.reset({
           name: "",
           type: "",
           serialNumber: "",
-          assignedTo: "",
+          assignedTo: RHF_UNASSIGNED_VALUE,
           purchaseDate: new Date(), // Default to today for new equipment
           status: "Operational",
         });
@@ -101,6 +105,7 @@ export function EquipmentFormDialog({
   }, [isOpen, equipmentToEdit, form]);
 
   const handleSubmit = (data: EquipmentFormData) => {
+    // Map RHF_UNASSIGNED_VALUE back if needed, though "" is fine for optional string
     onSave(data);
   };
 
@@ -155,7 +160,6 @@ export function EquipmentFormDialog({
                           ))}
                         </SelectContent>
                       </Select>
-                    {/* Or allow free text: <FormControl><Input placeholder="e.g. Laptop, Printer, Monitor" {...field} /></FormControl> */}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -246,14 +250,23 @@ export function EquipmentFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Assigned To (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select
+                      onValueChange={(valueFromSelect) => {
+                        if (valueFromSelect === SELECT_ITEM_UNASSIGNED_VALUE) {
+                          field.onChange(RHF_UNASSIGNED_VALUE);
+                        } else {
+                          field.onChange(valueFromSelect);
+                        }
+                      }}
+                      value={field.value === RHF_UNASSIGNED_VALUE ? SELECT_ITEM_UNASSIGNED_VALUE : field.value || SELECT_ITEM_UNASSIGNED_VALUE}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select user to assign" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Unassigned</SelectItem>
+                        <SelectItem value={SELECT_ITEM_UNASSIGNED_VALUE}>Unassigned</SelectItem>
                         {users.map(user => (
                           <SelectItem key={user.id} value={user.id}>{user.name} ({user.email})</SelectItem>
                         ))}
