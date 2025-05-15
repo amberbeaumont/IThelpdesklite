@@ -28,8 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-// TODO: Create EquipmentFormDialog similar to UserFormDialog
-// import { EquipmentFormDialog, type EquipmentFormData } from "@/components/dashboard/equipment-form-dialog";
+import { EquipmentFormDialog, type EquipmentFormData } from "@/components/dashboard/equipment-form-dialog";
 import { HardDrive, PlusCircle, Edit3, Trash2, Laptop, Printer, Server } from "lucide-react";
 import { mockEquipment, mockUsers } from "@/lib/placeholder-data";
 import type { Equipment, User } from "@/lib/types";
@@ -40,16 +39,21 @@ import { format } from "date-fns";
 const equipmentTypeIcons: Record<string, React.ReactElement> = {
   Laptop: <Laptop className="h-4 w-4 text-muted-foreground" />,
   Printer: <Printer className="h-4 w-4 text-muted-foreground" />,
-  Switch: <Server className="h-4 w-4 text-muted-foreground" />, // Using Server icon for Switch
-  Desktop: <Laptop className="h-4 w-4 text-muted-foreground" />, // Using Laptop for Desktop too
+  Switch: <Server className="h-4 w-4 text-muted-foreground" />, 
+  Desktop: <Laptop className="h-4 w-4 text-muted-foreground" />, 
+  Monitor: <Laptop className="h-4 w-4 text-muted-foreground" data-ai-hint="monitor screen"/>, // Placeholder, consider specific icon
+  Scanner: <Printer className="h-4 w-4 text-muted-foreground" data-ai-hint="scanner device"/>, // Placeholder
+  Router: <Server className="h-4 w-4 text-muted-foreground" data-ai-hint="network router"/>, // Placeholder
+  Keyboard: <HardDrive className="h-4 w-4 text-muted-foreground" data-ai-hint="computer keyboard"/>, // Placeholder
+  Mouse: <HardDrive className="h-4 w-4 text-muted-foreground" data-ai-hint="computer mouse"/>, // Placeholder
   Other: <HardDrive className="h-4 w-4 text-muted-foreground" />,
 };
 
 const getStatusBadgeVariant = (status: Equipment['status']): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
-    case "Operational": return "default"; // Greenish or bluish if customized
-    case "Maintenance": return "secondary"; // Yellowish
-    case "Decommissioned": return "destructive"; // Reddish
+    case "Operational": return "default"; 
+    case "Maintenance": return "secondary"; 
+    case "Decommissioned": return "destructive"; 
     default: return "outline";
   }
 };
@@ -58,20 +62,18 @@ const getStatusBadgeVariant = (status: Equipment['status']): "default" | "second
 export default function EquipmentPage() {
   const { toast } = useToast();
   const [equipmentList, setEquipmentList] = React.useState<Equipment[]>(mockEquipment);
-  // const [isFormDialogOpen, setIsFormDialogOpen] = React.useState(false);
-  // const [equipmentToEdit, setEquipmentToEdit] = React.useState<Equipment | null>(null);
+  const [isFormDialogOpen, setIsFormDialogOpen] = React.useState(false);
+  const [equipmentToEdit, setEquipmentToEdit] = React.useState<Equipment | null>(null);
   const [equipmentToDeleteId, setEquipmentToDeleteId] = React.useState<string | null>(null);
 
   const handleAddEquipmentClick = () => {
-    // setEquipmentToEdit(null);
-    // setIsFormDialogOpen(true);
-    toast({ title: "Add Equipment", description: "Add equipment functionality is not yet implemented." });
+    setEquipmentToEdit(null);
+    setIsFormDialogOpen(true);
   };
 
   const handleEditEquipmentClick = (equipment: Equipment) => {
-    // setEquipmentToEdit(equipment);
-    // setIsFormDialogOpen(true);
-    toast({ title: "Edit Equipment", description: `Edit for ${equipment.name} is not yet implemented.` });
+    setEquipmentToEdit(equipment);
+    setIsFormDialogOpen(true);
   };
 
   const handleDeleteEquipmentClick = (equipmentId: string) => {
@@ -90,35 +92,35 @@ export default function EquipmentPage() {
     }
   };
 
-  // const handleSaveEquipment = (data: EquipmentFormData) => {
-  //   if (equipmentToEdit) {
-  //     // Edit existing equipment
-  //     setEquipmentList(
-  //       equipmentList.map((eq) =>
-  //         eq.id === equipmentToEdit.id ? { ...eq, ...data, purchaseDate: new Date(data.purchaseDate) } : eq // ensure date is Date object
-  //       )
-  //     );
-  //     toast({
-  //       title: "Equipment Updated",
-  //       description: `${data.name}'s details have been successfully updated.`,
-  //     });
-  //   } else {
-  //     // Add new equipment
-  //     const newEquipment: Equipment = {
-  //       id: `EQP-${Date.now()}`, // Simple ID generation
-  //       ...data,
-  //       purchaseDate: new Date(data.purchaseDate), // ensure date is Date object
-  //       status: data.status || "Operational", // Default status if not provided by form
-  //     };
-  //     setEquipmentList([...equipmentList, newEquipment]);
-  //     toast({
-  //       title: "Equipment Added",
-  //       description: `${data.name} has been successfully added.`,
-  //     });
-  //   }
-  //   setIsFormDialogOpen(false);
-  //   setEquipmentToEdit(null);
-  // };
+  const handleSaveEquipment = (data: EquipmentFormData) => {
+    if (equipmentToEdit) {
+      // Edit existing equipment
+      setEquipmentList(
+        equipmentList.map((eq) =>
+          eq.id === equipmentToEdit.id ? { ...eq, ...data, purchaseDate: new Date(data.purchaseDate) } : eq
+        )
+      );
+      toast({
+        title: "Equipment Updated",
+        description: `${data.name}'s details have been successfully updated.`,
+      });
+    } else {
+      // Add new equipment
+      const newEquipment: Equipment = {
+        id: `EQP-${Date.now()}`, // Simple ID generation
+        ...data,
+        purchaseDate: new Date(data.purchaseDate),
+        // status is already part of data from form
+      };
+      setEquipmentList([newEquipment, ...equipmentList]); // Add to beginning of list
+      toast({
+        title: "Equipment Added",
+        description: `${data.name} has been successfully added.`,
+      });
+    }
+    setIsFormDialogOpen(false);
+    setEquipmentToEdit(null);
+  };
 
   const getAssigneeName = (userId?: string): string => {
     if (!userId) return "Unassigned";
@@ -213,8 +215,6 @@ export default function EquipmentPage() {
         </CardContent>
       </Card>
 
-      {/* 
-      Placeholder for EquipmentFormDialog - to be implemented 
       <EquipmentFormDialog
         isOpen={isFormDialogOpen}
         onClose={() => {
@@ -223,9 +223,9 @@ export default function EquipmentPage() {
         }}
         equipmentToEdit={equipmentToEdit}
         onSave={handleSaveEquipment}
+        users={mockUsers} // Pass users for assignment dropdown
       /> 
-      */}
-
+      
       <AlertDialog open={!!equipmentToDeleteId} onOpenChange={(open) => !open && setEquipmentToDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -246,4 +246,3 @@ export default function EquipmentPage() {
   );
 }
 
-    

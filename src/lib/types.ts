@@ -42,14 +42,21 @@ export interface Snippet {
   content: string;
 }
 
+export type EquipmentStatus = "Operational" | "Maintenance" | "Decommissioned";
+export const equipmentStatuses: EquipmentStatus[] = ["Operational", "Maintenance", "Decommissioned"];
+
+// Predefined common equipment types, can be expanded
+export const commonEquipmentTypes: string[] = ["Laptop", "Desktop", "Monitor", "Printer", "Scanner", "Router", "Switch", "Keyboard", "Mouse", "Other"];
+
+
 export interface Equipment {
   id: string;
   name: string;
-  type: string;
+  type: string; // Can be one of commonEquipmentTypes or custom
   serialNumber: string;
   assignedTo?: User["id"];
   purchaseDate: Date;
-  status: "Operational" | "Maintenance" | "Decommissioned";
+  status: EquipmentStatus;
 }
 
 export interface Report {
@@ -58,3 +65,4 @@ export interface Report {
   generatedAt: Date;
   data: any; // Placeholder for report data structure
 }
+
