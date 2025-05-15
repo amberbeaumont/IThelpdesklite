@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog as BookmarkDialog, // Renamed to avoid conflict with NoteFormDialog
+  Dialog as BookmarkDialog, 
   DialogContent as BookmarkDialogContent,
   DialogHeader as BookmarkDialogHeader,
   DialogTitle as BookmarkDialogTitle,
@@ -32,7 +32,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Note, Bookmark, Document } from "@/lib/types";
 import { getStoredNotes, storeNotes, getStoredBookmarks, storeBookmarks, getStoredDocuments, storeDocuments } from "@/lib/placeholder-data";
-import { NoteFormDialog, type NoteFormData } from "@/components/dashboard/note-form-dialog"; // New import
+import { NoteFormDialog, type NoteFormData } from "@/components/dashboard/note-form-dialog";
 import {
   NotebookText,
   Bookmark as BookmarkIcon,
@@ -41,6 +41,7 @@ import {
   Edit3,
   Trash2,
   UploadCloud,
+  Search,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -65,6 +66,9 @@ export default function NotesDocsPage() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [documentToDelete, setDocumentToDelete] = React.useState<Document | null>(null);
 
+  // State for search
+  const [searchTerm, setSearchTerm] = React.useState("");
+
   React.useEffect(() => {
     setNotes(getStoredNotes());
     setBookmarks(getStoredBookmarks());
@@ -88,12 +92,12 @@ export default function NotesDocsPage() {
       return;
     }
     const now = new Date().toISOString();
-    if (noteToEdit) { // Editing existing note
+    if (noteToEdit) { 
       const updatedNotes = notes.map(n => n.id === noteToEdit.id ? { ...n, ...data, updatedAt: now } : n);
       setNotes(updatedNotes);
       storeNotes(updatedNotes);
       toast({ title: "Note Updated", description: "Your note has been successfully updated." });
-    } else { // Adding new note
+    } else { 
       const newNote: Note = {
         id: `note-${Date.now()}`,
         title: data.title,
@@ -118,7 +122,7 @@ export default function NotesDocsPage() {
       toast({ title: "Note Deleted", description: `${noteToDelete.title} has been deleted.` });
       setNoteToDelete(null);
       if (noteToEdit && noteToEdit.id === noteToDelete.id) {
-        setIsNoteFormOpen(false); // Close dialog if deleted note was being edited
+        setIsNoteFormOpen(false); 
         setNoteToEdit(null);
       }
     }
@@ -195,7 +199,7 @@ export default function NotesDocsPage() {
       storeDocuments(updatedDocuments);
       toast({ title: "File 'Added'", description: `${file.name} has been added to the list.` });
     }
-    if (fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = ""; 
   };
 
   const confirmDeleteDocument = () => {
@@ -216,11 +220,25 @@ export default function NotesDocsPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
+  // --- Search Filtering ---
+  const filteredNotes = notes.filter(note => 
+    note.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    note.content.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const filteredBookmarks = bookmarks.filter(bookmark => 
+    bookmark.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    bookmark.url.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const filteredDocuments = documents.filter(doc => 
+    doc.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex-grow">
             <CardTitle className="text-2xl flex items-center gap-2">
               <NotebookText className="h-7 w-7 text-primary" />
               Notes & Documentation
@@ -229,7 +247,22 @@ export default function NotesDocsPage() {
               Manage internal notes, documentation, bookmarks, and knowledge base articles.
             </CardDescription>
           </div>
-          <div className="flex gap-2">
+          <div className="w-full md:w-auto md:min-w-[300px]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                type="search"
+                placeholder="Search notes, bookmarks, docs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full"
+              />
+            </div>
+          </div>
+          
+        </CardHeader>
+        <CardContent className="border-t pt-4">
+            <div className="flex flex-wrap gap-2 mb-6">
              <Button variant="outline" onClick={handleAddNoteClick}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Note
             </Button>
@@ -241,96 +274,95 @@ export default function NotesDocsPage() {
             </Button>
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
           </div>
-        </CardHeader>
-      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Notes Section (Left Column) */}
-        <Card className="lg:col-span-2 shadow-md bg-sidebar-background text-sidebar-foreground p-0">
-          <CardHeader className="bg-sidebar-background rounded-t-lg">
-            <CardTitle className="text-xl">Notes</CardTitle>
-             <CardDescription className="text-sidebar-foreground/80">Click "Add Note" or an existing note's edit icon.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            {/* List of Existing Notes */}
-            {notes.length > 0 ? (
-                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-                {notes.map(note => (
-                    <Card key={note.id} className="bg-background text-foreground">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-md flex justify-between items-center">
-                        {note.title}
-                        <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-primary" onClick={() => handleEditNoteClick(note)}><Edit3 className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-destructive" onClick={() => setNoteToDelete(note)}><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                        </CardTitle>
-                        <CardDescription className="text-xs">
-                            Last updated: {format(new Date(note.updatedAt), "PP p")}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm whitespace-pre-wrap truncate hover:whitespace-normal hover:overflow-visible h-10 hover:h-auto transition-all duration-200">{note.content}</p>
-                    </CardContent>
-                    </Card>
-                ))}
-                </div>
-            ) : (
-                <div className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-sidebar-border rounded-md">
-                    <NotebookText className="h-12 w-12 text-sidebar-foreground/50 mb-3" />
-                    <p className="text-lg font-semibold text-sidebar-foreground/70">No Notes Yet</p>
-                    <p className="text-sidebar-foreground/60 text-sm">Click "Add Note" to create your first one.</p>
-                </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Right Column (Bookmarks & Documents) */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Bookmarks Section */}
-          <Card className="shadow-md bg-accent text-accent-foreground">
-            <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
-                <BookmarkIcon className="h-6 w-6" /> Bookmarks
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
-              {bookmarks.length > 0 ? bookmarks.map(bookmark => (
-                <div key={bookmark.id} className="flex items-center justify-between p-2 bg-accent/80 rounded">
-                  <div>
-                    <a href={bookmark.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline truncate block max-w-[180px]" title={bookmark.url}>{bookmark.title}</a>
-                    <p className="text-xs opacity-80">Added: {format(new Date(bookmark.createdAt), "PP")}</p>
-                  </div>
-                  <div className="flex gap-1">
-                     <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent/60" onClick={() => handleEditBookmark(bookmark)}><Edit3 className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent/60" onClick={() => setBookmarkToDelete(bookmark)}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                </div>
-              )) : <p className="text-sm opacity-90">No bookmarks added yet.</p>}
-            </CardContent>
-          </Card>
-
-          {/* Documents Section */}
-          <Card className="shadow-md bg-primary/20 border border-primary/50">
-            <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2 text-primary">
-                <FileText className="h-6 w-6" /> Documents
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
-                {documents.length > 0 ? documents.map(doc => (
-                    <div key={doc.id} className="flex items-center justify-between p-2 bg-background rounded border">
-                        <div>
-                            <p className="font-medium truncate max-w-[180px]" title={doc.name}>{doc.name}</p>
-                            <p className="text-xs text-muted-foreground">{formatFileSize(doc.size)} - Uploaded: {format(new Date(doc.uploadedAt), "PP")}</p>
-                        </div>
-                         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDocumentToDelete(doc)}><Trash2 className="h-4 w-4" /></Button>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Notes Section (Left Column) */}
+            <Card className="lg:col-span-2 shadow-md bg-sidebar-background text-sidebar-foreground p-0">
+              <CardHeader className="bg-sidebar-background rounded-t-lg">
+                <CardTitle className="text-xl">Notes ({filteredNotes.length})</CardTitle>
+                 <CardDescription className="text-sidebar-foreground/80">Click "Add Note" or an existing note's edit icon.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 space-y-4">
+                {filteredNotes.length > 0 ? (
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                    {filteredNotes.map(note => (
+                        <Card key={note.id} className="bg-background text-foreground">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-md flex justify-between items-center">
+                            {note.title}
+                            <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-primary" onClick={() => handleEditNoteClick(note)}><Edit3 className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 hover:text-destructive" onClick={() => setNoteToDelete(note)}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                            </CardTitle>
+                            <CardDescription className="text-xs">
+                                Last updated: {format(new Date(note.updatedAt), "PP p")}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm whitespace-pre-wrap truncate hover:whitespace-normal hover:overflow-visible h-10 hover:h-auto transition-all duration-200">{note.content}</p>
+                        </CardContent>
+                        </Card>
+                    ))}
                     </div>
-                )) : <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-sidebar-border rounded-md">
+                        <NotebookText className="h-12 w-12 text-sidebar-foreground/50 mb-3" />
+                        <p className="text-lg font-semibold text-sidebar-foreground/70">{searchTerm ? "No Matching Notes" : "No Notes Yet"}</p>
+                        <p className="text-sidebar-foreground/60 text-sm">{searchTerm ? "Try a different search term." : 'Click "Add Note" to create your first one.'}</p>
+                    </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Right Column (Bookmarks & Documents) */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* Bookmarks Section */}
+              <Card className="shadow-md bg-accent text-accent-foreground">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <BookmarkIcon className="h-6 w-6" /> Bookmarks ({filteredBookmarks.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                  {filteredBookmarks.length > 0 ? filteredBookmarks.map(bookmark => (
+                    <div key={bookmark.id} className="flex items-center justify-between p-2 bg-accent/80 rounded">
+                      <div>
+                        <a href={bookmark.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline truncate block max-w-[180px]" title={bookmark.url}>{bookmark.title}</a>
+                        <p className="text-xs opacity-80">Added: {format(new Date(bookmark.createdAt), "PP")}</p>
+                      </div>
+                      <div className="flex gap-1">
+                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent/60" onClick={() => handleEditBookmark(bookmark)}><Edit3 className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent/60" onClick={() => setBookmarkToDelete(bookmark)}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                  )) : <p className="text-sm opacity-90">{searchTerm ? "No matching bookmarks." : "No bookmarks added yet."}</p>}
+                </CardContent>
+              </Card>
+
+              {/* Documents Section */}
+              <Card className="shadow-md bg-primary/20 border border-primary/50">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2 text-primary">
+                    <FileText className="h-6 w-6" /> Documents ({filteredDocuments.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                    {filteredDocuments.length > 0 ? filteredDocuments.map(doc => (
+                        <div key={doc.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                            <div>
+                                <p className="font-medium truncate max-w-[180px]" title={doc.name}>{doc.name}</p>
+                                <p className="text-xs text-muted-foreground">{formatFileSize(doc.size)} - Uploaded: {format(new Date(doc.uploadedAt), "PP")}</p>
+                            </div>
+                             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => setDocumentToDelete(doc)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                    )) : <p className="text-sm text-muted-foreground">{searchTerm ? "No matching documents." : "No documents uploaded yet."}</p>}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <NoteFormDialog
         isOpen={isNoteFormOpen}
@@ -342,7 +374,6 @@ export default function NotesDocsPage() {
         onSave={handleSaveNote}
       />
 
-      {/* Bookmark Add/Edit Dialog */}
       <BookmarkDialog open={isBookmarkDialogOpen} onOpenChange={(isOpen) => {
           if (!isOpen) {
               setIsBookmarkDialogOpen(false);
@@ -373,7 +404,6 @@ export default function NotesDocsPage() {
         </BookmarkDialogContent>
       </BookmarkDialog>
 
-      {/* Delete Confirmation Dialogs */}
       <AlertDialog open={!!noteToDelete} onOpenChange={() => setNoteToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Delete Note?</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete the note "{noteToDelete?.title}"? This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>

@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { EquipmentFormDialog, type EquipmentFormData } from "@/components/dashboard/equipment-form-dialog";
-import { HardDrive, PlusCircle, Edit3, Trash2, Laptop, Printer, Server } from "lucide-react";
+import { HardDrive, PlusCircle, Edit3, Trash2, Laptop, Printer, Server, Monitor as MonitorIcon, ScanLine as ScanLineIcon, Router as RouterIcon, Keyboard as KeyboardIcon, Mouse as MouseIcon } from "lucide-react";
 import { mockEquipment, mockUsers } from "@/lib/placeholder-data";
 import type { Equipment, User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -40,12 +40,12 @@ const equipmentTypeIcons: Record<string, React.ReactElement> = {
   Laptop: <Laptop className="h-4 w-4 text-muted-foreground" />,
   Printer: <Printer className="h-4 w-4 text-muted-foreground" />,
   Switch: <Server className="h-4 w-4 text-muted-foreground" />, 
-  Desktop: <Laptop className="h-4 w-4 text-muted-foreground" />, 
-  Monitor: <Laptop className="h-4 w-4 text-muted-foreground" data-ai-hint="monitor screen"/>, // Placeholder, consider specific icon
-  Scanner: <Printer className="h-4 w-4 text-muted-foreground" data-ai-hint="scanner device"/>, // Placeholder
-  Router: <Server className="h-4 w-4 text-muted-foreground" data-ai-hint="network router"/>, // Placeholder
-  Keyboard: <HardDrive className="h-4 w-4 text-muted-foreground" data-ai-hint="computer keyboard"/>, // Placeholder
-  Mouse: <HardDrive className="h-4 w-4 text-muted-foreground" data-ai-hint="computer mouse"/>, // Placeholder
+  Desktop: <Laptop className="h-4 w-4 text-muted-foreground" data-ai-hint="desktop computer"/>, 
+  Monitor: <MonitorIcon className="h-4 w-4 text-muted-foreground" data-ai-hint="monitor screen"/>,
+  Scanner: <ScanLineIcon className="h-4 w-4 text-muted-foreground" data-ai-hint="scanner device"/>,
+  Router: <RouterIcon className="h-4 w-4 text-muted-foreground" data-ai-hint="network router"/>,
+  Keyboard: <KeyboardIcon className="h-4 w-4 text-muted-foreground" data-ai-hint="computer keyboard"/>,
+  Mouse: <MouseIcon className="h-4 w-4 text-muted-foreground" data-ai-hint="computer mouse"/>,
   Other: <HardDrive className="h-4 w-4 text-muted-foreground" />,
 };
 
@@ -223,7 +223,7 @@ export default function EquipmentPage() {
         }}
         equipmentToEdit={equipmentToEdit}
         onSave={handleSaveEquipment}
-        users={mockUsers} // Pass users for assignment dropdown
+        users={mockUsers} 
       /> 
       
       <AlertDialog open={!!equipmentToDeleteId} onOpenChange={(open) => !open && setEquipmentToDeleteId(null)}>
