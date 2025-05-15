@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card"; 
+import { Card } from "@/components/ui/card"; // Ensure Card is imported
 import { mockUsers, ticketStatuses, urgencies } from "@/lib/placeholder-data";
 import type { Ticket, TicketStatus, Urgency } from "@/lib/types";
 import { Eye, Filter, CircleAlert, LoaderCircle, UserCircle, CheckCircle2, ChevronDown, Minus, ChevronUp, AlertTriangle } from "lucide-react";
@@ -122,7 +122,6 @@ export function TicketList({ initialTickets }: TicketListProps) {
         <Table>
             <TableHeader>
             <TableRow>
-                <TableHead>ID</TableHead>
                 <TableHead>Subject</TableHead>
                 <TableHead>Requester</TableHead>
                 <TableHead className="text-center">Status</TableHead>
@@ -136,7 +135,6 @@ export function TicketList({ initialTickets }: TicketListProps) {
             {filteredTickets.length > 0 ? (
                 filteredTickets.map((ticket) => (
                 <TableRow key={ticket.id}>
-                    <TableCell className="font-medium">{ticket.id}</TableCell>
                     <TableCell className="max-w-xs truncate">{ticket.subject}</TableCell>
                     <TableCell>{ticket.requesterName}</TableCell>
                     <TableCell className="text-center">
@@ -165,7 +163,7 @@ export function TicketList({ initialTickets }: TicketListProps) {
                 ))
             ) : (
                 <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                     No tickets found.
                 </TableCell>
                 </TableRow>
