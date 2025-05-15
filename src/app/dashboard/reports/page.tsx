@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { mockTickets, mockEquipment, mockUsers } from "@/lib/placeholder-data";
 import type { Ticket, Equipment, User } from "@/lib/types";
-import { BarChartBig, ChevronDown, FileText, FileSpreadsheet, Settings2 } from "lucide-react";
+import { BarChartBig, ChevronDown, FileText, FileSpreadsheet, Settings2, ArrowUpZA, ArrowDownAZ, Minus } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -148,10 +148,14 @@ export default function ReportsPage() {
   const [selectedFieldKeys, setSelectedFieldKeys] = React.useState<string[]>([]);
   const [reportData, setReportData] = React.useState<any[]>([]);
   const [reportHeaders, setReportHeaders] = React.useState<ReportField[]>([]);
+  
+  const [sortConfig, setSortConfig] = React.useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
 
-  // Reset selected fields when data source changes
+
+  // Reset selected fields and sort when data source changes
   React.useEffect(() => {
     setSelectedFieldKeys([]);
+    setSortConfig({ key: null, direction: 'asc' });
   }, [dataSource]);
   
   // Regenerate report when selected fields or data source changes
@@ -178,16 +182,38 @@ export default function ReportsPage() {
     }
 
     const allMockData = { users: mockUsers, tickets: mockTickets, equipment: mockEquipment };
-    const processedData = rawData.map(item => {
+    let processedData = rawData.map(item => {
       const row: Record<string, any> = {};
       currentReportHeaders.forEach(header => {
         row[header.key] = header.resolve(item, allMockData);
       });
       return row;
     });
+
+    if (sortConfig.key) {
+      processedData.sort((a, b) => {
+        const valA = a[sortConfig.key!];
+        const valB = b[sortConfig.key!];
+
+        if (valA === null || valA === undefined) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valB === null || valB === undefined) return sortConfig.direction === 'asc' ? 1 : -1;
+        
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
+        }
+        if (typeof valA === 'string' && typeof valB === 'string') {
+          return sortConfig.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        // Fallback for other types (e.g. boolean, or mixed, or ReactNodes that stringify predictably)
+        const strA = String(valA).toLowerCase();
+        const strB = String(valB).toLowerCase();
+        return sortConfig.direction === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
+      });
+    }
+
     setReportData(processedData);
 
-  }, [dataSource, selectedFieldKeys]);
+  }, [dataSource, selectedFieldKeys, sortConfig]);
 
   const handleFieldSelectionChange = (fieldKey: string) => {
     setSelectedFieldKeys(prev => 
@@ -198,6 +224,15 @@ export default function ReportsPage() {
   };
   
   const numSelectedFields = selectedFieldKeys.length;
+
+  const handleSort = (columnKey: string) => {
+    setSortConfig(prevSortConfig => {
+      if (prevSortConfig.key === columnKey) {
+        return { key: columnKey, direction: prevSortConfig.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key: columnKey, direction: 'asc' };
+    });
+  };
 
   const renderFieldSelectorDropdown = (fields: ReportField[], title: string, idSuffix: string) => (
     <div className="flex-1 space-y-2">
@@ -237,7 +272,7 @@ export default function ReportsPage() {
             Reports & Analytics
           </CardTitle>
           <CardDescription>
-            Select a primary data source, then choose fields from Tickets, Equipment, or Users to build your report.
+            Select a primary data source, then choose fields from Tickets, Equipment, or Users to build your report. Column order is based on selection. Click headers to sort.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -248,7 +283,7 @@ export default function ReportsPage() {
             <Settings2 className="h-6 w-6 text-primary" />
             Custom Report Builder
           </CardTitle>
-          <CardDescription>The table will update automatically as you select fields. Column order is based on selection order.</CardDescription>
+          <CardDescription>The table will update automatically as you select fields.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
@@ -291,7 +326,18 @@ export default function ReportsPage() {
                       <TableHeader>
                         <TableRow>
                           {reportHeaders.map(header => (
-                            <TableHead key={header.key}>{header.label}</TableHead>
+                            <TableHead 
+                              key={header.key} 
+                              onClick={() => handleSort(header.key)}
+                              className="cursor-pointer hover:bg-muted/50"
+                            >
+                              <div className="flex items-center gap-2">
+                                {header.label}
+                                {sortConfig.key === header.key ? (
+                                  sortConfig.direction === 'asc' ? <ArrowUpZA className="h-4 w-4" /> : <ArrowDownAZ className="h-4 w-4" />
+                                ) : <Minus className="h-4 w-4 text-muted-foreground/50" /> }
+                              </div>
+                            </TableHead>
                           ))}
                         </TableRow>
                       </TableHeader>
