@@ -1,5 +1,5 @@
 import { SidebarProvider, Sidebar, SidebarInset, SidebarRail } from "@/components/ui/sidebar";
-// import { SidebarNav } from "@/components/dashboard/sidebar-nav"; // Removed import
+import { SidebarNav } from "@/components/dashboard/sidebar-nav"; // Added import
 
 export default function DashboardLayout({
   children,
@@ -9,8 +9,7 @@ export default function DashboardLayout({
   return (
     <SidebarProvider defaultOpen>
       <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border shadow-md">
-        {/* <SidebarNav /> */} {/* Removed SidebarNav component */}
-        {/* You might want to add alternative sidebar content or structure here */}
+        <SidebarNav /> {/* Added SidebarNav component back */}
       </Sidebar>
       <SidebarRail />
       <SidebarInset className="bg-background">
