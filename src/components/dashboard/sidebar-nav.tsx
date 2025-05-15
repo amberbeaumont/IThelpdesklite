@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -9,7 +10,6 @@ import {
   HardDrive,
   BarChartBig,
   LogOut,
-  Settings,
   LifeBuoy,
 } from "lucide-react";
 import {
@@ -51,7 +51,6 @@ export function SidebarNav() {
             <LifeBuoy className="h-8 w-8 text-primary" />
             <h1 className="text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">HelpDesk Lite</h1>
         </div>
-        {/* SidebarTrigger removed from here */}
       </SidebarHeader>
       
       <SidebarMenu className="flex-1 p-2">
@@ -74,15 +73,6 @@ export function SidebarNav() {
       <SidebarSeparator />
 
       <SidebarFooter className="p-3 space-y-2">
-         <Link href="/dashboard/settings" passHref legacyBehavior>
-            <SidebarMenuButton 
-                tooltip={{ children: "Settings", className:"bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-border" }}
-                className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus:bg-sidebar-accent focus:text-sidebar-accent-foreground"
-            >
-                <Settings className="h-5 w-5" />
-                <span className="group-data-[collapsible=icon]:hidden">Settings</span>
-            </SidebarMenuButton>
-        </Link>
         <Button
           variant="ghost"
           className="w-full justify-start gap-2 p-2 h-auto text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus:bg-sidebar-accent focus:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center"
