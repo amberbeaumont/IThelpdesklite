@@ -29,6 +29,14 @@ const TICKET_REPORT_FIELDS: ReportField[] = [
   { key: "ticket.subject", label: "Subject", resolve: (item: Ticket) => item.subject },
   { key: "ticket.requesterName", label: "Requester Name", resolve: (item: Ticket) => item.requesterName },
   { key: "ticket.requesterEmail", label: "Requester Email", resolve: (item: Ticket) => item.requesterEmail },
+  {
+    key: "ticket.requesterRole",
+    label: "Requester Role",
+    resolve: (item: Ticket, allData) => {
+      const user = allData.users.find(u => u.email === item.requesterEmail);
+      return user ? user.role : "N/A";
+    }
+  },
   { key: "ticket.problemType", label: "Problem Type", resolve: (item: Ticket) => item.problemType },
   { key: "ticket.urgency", label: "Urgency", resolve: (item: Ticket) => item.urgency },
   { key: "ticket.status", label: "Status", resolve: (item: Ticket) => item.status },
@@ -52,7 +60,7 @@ const EQUIPMENT_REPORT_FIELDS: ReportField[] = [
   { key: "equipment.serialNumber", label: "Serial Number", resolve: (item: Equipment) => item.serialNumber },
   {
     key: "equipment.assignedToName",
-    label: "Assigned To User",
+    label: "Assigned User Name",
     resolve: (item: Equipment, allData) => {
       if (!item.assignedTo) return "Unassigned";
       const user = allData.users.find(u => u.id === item.assignedTo);
@@ -66,6 +74,15 @@ const EQUIPMENT_REPORT_FIELDS: ReportField[] = [
       if (!item.assignedTo) return "N/A";
       const user = allData.users.find(u => u.id === item.assignedTo);
       return user ? user.email : "Unknown User";
+    }
+  },
+  {
+    key: "equipment.assigneeRole",
+    label: "Assignee Role",
+    resolve: (item: Equipment, allData) => {
+      if (!item.assignedTo) return "N/A";
+      const user = allData.users.find(u => u.id === item.assignedTo);
+      return user ? user.role : "Unknown";
     }
   },
   { key: "equipment.purchaseDate", label: "Purchase Date", resolve: (item: Equipment) => format(new Date(item.purchaseDate), "PP") },
@@ -82,6 +99,14 @@ const USER_REPORT_FIELDS: ReportField[] = [
     label: "Open Tickets Count",
     resolve: (item: User, allData) => {
       return allData.tickets.filter(t => t.requesterEmail === item.email && t.status !== "Closed").length;
+    }
+  },
+  {
+    key: "user.firstTicketSubject",
+    label: "First Ticket Subject",
+    resolve: (item: User, allData) => {
+      const userTickets = allData.tickets.filter(t => t.requesterEmail === item.email).sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      return userTickets.length > 0 ? userTickets[0].subject : "No tickets";
     }
   },
   {
@@ -123,11 +148,15 @@ export default function ReportsPage() {
 
   const handleFieldSelectionChange = (fieldKey: string) => {
     setSelectedFieldKeys(prev => {
-      if (prev.includes(fieldKey)) {
-        return prev.filter(key => key !== fieldKey);
-      } else {
-        return [...prev, fieldKey];
-      }
+      const newSelection = prev.includes(fieldKey)
+        ? prev.filter(key => key !== fieldKey)
+        : [...prev, fieldKey];
+      
+      // Ensure field order is maintained as selected
+      // This relies on availableFields being stable for the current dataSource
+      return availableFields
+        .filter(field => newSelection.includes(field.key))
+        .map(field => field.key);
     });
   };
   
@@ -293,3 +322,4 @@ export default function ReportsPage() {
   );
 }
     
+
