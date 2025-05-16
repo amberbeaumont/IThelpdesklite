@@ -347,23 +347,13 @@ export default function ReportsPage() {
     <div className="space-y-8">
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-2">
-            <BarChartBig className="h-7 w-7 text-primary" />
-            Reports & Analytics
-          </CardTitle>
-          <CardDescription>
-            Select fields from Tickets, Equipment, or Users to build your report. The first field selected will determine the report's primary data focus (what each row represents). Column order is based on selection order. Click table headers to sort.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <Card className="shadow-md">
-        <CardHeader>
           <CardTitle className="text-xl flex items-center gap-2">
             <Settings2 className="h-6 w-6 text-primary" />
             Custom Report Builder
           </CardTitle>
-          <CardDescription>The table will update automatically as you select fields.</CardDescription>
+          <CardDescription>
+           Select fields from Tickets, Equipment, or Users to build your report. The first field selected will determine the report's primary data focus (what each row represents). Column order is based on selection order. Click table headers to sort.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
