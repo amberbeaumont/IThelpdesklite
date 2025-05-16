@@ -131,6 +131,7 @@ export default function UsersPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead className="text-center">Role</TableHead>
                     <TableHead className="text-right w-[120px]">Actions</TableHead>
@@ -144,6 +145,7 @@ export default function UsersPage() {
                       className="cursor-pointer hover:bg-muted/50"
                     >
                       <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
                       <TableCell>{user.phone || "N/A"}</TableCell>
                       <TableCell className="text-center">
                         <Badge variant={user.role === "IT_Support" ? "default" : "secondary"}>
