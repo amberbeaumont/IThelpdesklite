@@ -101,7 +101,7 @@ export const mockReports: Report[] = [
     { id: 'REP002', title: 'Hardware Failure Rates Q1', generatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), data: { laptops: '2%', desktops: '1%', printers: '5%' } },
 ];
 
-// Helper to parse stored tickets from localStorage
+// Helper to parse stored tickets from localStorage (specifically "submittedTickets")
 export const getStoredTickets = (): Ticket[] => {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem('submittedTickets');
@@ -124,6 +124,22 @@ export const getStoredTickets = (): Ticket[] => {
   return [];
 };
 
+// Helper to save tickets to "submittedTickets" in localStorage
+export const storeSubmittedTickets = (ticketsToStore: Ticket[]): void => {
+  if (typeof window === 'undefined') return;
+  const storableTickets = ticketsToStore.map(t => ({
+    ...t,
+    createdAt: new Date(t.createdAt).toISOString(),
+    updatedAt: new Date(t.updatedAt).toISOString(),
+    comments: Array.isArray(t.comments) ? t.comments.map(c => ({
+      ...c,
+      createdAt: new Date(c.createdAt).toISOString(),
+    })) : [],
+  }));
+  localStorage.setItem("submittedTickets", JSON.stringify(storableTickets));
+};
+
+
 // Helper to combine mock tickets and stored tickets
 export const getAllTickets = (): Ticket[] => {
   const storedTickets = getStoredTickets();
@@ -134,12 +150,30 @@ export const getAllTickets = (): Ticket[] => {
     comments: t.comments.map(c => ({...c, createdAt: new Date(c.createdAt)})),
   }));
   
-  const combinedTickets = [...storedTickets];
-  allMockTickets.forEach(mockTicket => {
-    if (!storedTickets.find(st => st.id === mockTicket.id)) {
-      combinedTickets.push(mockTicket);
-    }
-  });
+  const combinedTicketsMap = new Map<string, Ticket>();
+
+  // Add mock tickets first
+  allMockTickets.forEach(ticket => combinedTicketsMap.set(ticket.id, ticket));
+  // Overwrite with or add stored tickets
+  storedTickets.forEach(ticket => combinedTicketsMap.set(ticket.id, ticket));
+  
+  const combinedTickets = Array.from(combinedTicketsMap.values());
+  
+  // Store the combined list under 'allTickets' for consistency if needed,
+  // but ensure dates are ISO strings for storage.
+  if (typeof window !== 'undefined') {
+    const storableAllTickets = combinedTickets.map(t => ({
+      ...t,
+      createdAt: new Date(t.createdAt).toISOString(),
+      updatedAt: new Date(t.updatedAt).toISOString(),
+      comments: Array.isArray(t.comments) ? t.comments.map(c => ({
+        ...c,
+        createdAt: new Date(c.createdAt).toISOString(),
+      })) : [],
+    }));
+    localStorage.setItem('allTickets', JSON.stringify(storableAllTickets));
+  }
+  
   return combinedTickets.sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 };
 
@@ -192,11 +226,31 @@ export const getStoredSnippets = (): Snippet[] => {
   if (typeof window === 'undefined') return initialMockSnippets; // Return default if no window
   const stored = localStorage.getItem(SNIPPETS_STORAGE_KEY);
   if (stored) {
-    return JSON.parse(stored);
+    try {
+        const parsedSnippets = JSON.parse(stored);
+        // Ensure createdAt and updatedAt are present, defaulting if not
+        return parsedSnippets.map((s: any) => ({
+            ...s,
+            createdAt: s.createdAt || new Date(0).toISOString(), // Default to epoch if missing
+            updatedAt: s.updatedAt || new Date(0).toISOString()  // Default to epoch if missing
+        }));
+    } catch(e) {
+        console.error("Error parsing snippets from localStorage:", e);
+        return initialMockSnippets.map(s => ({ // Ensure mock snippets also have these fields
+             ...s,
+            createdAt: s.createdAt || new Date(0).toISOString(),
+            updatedAt: s.updatedAt || new Date(0).toISOString()
+        }));
+    }
   }
   // If nothing in localStorage, initialize with mock snippets and store them
-  storeSnippets(initialMockSnippets);
-  return initialMockSnippets;
+  const snippetsToStore = initialMockSnippets.map(s => ({
+       ...s,
+      createdAt: s.createdAt || new Date(0).toISOString(),
+      updatedAt: s.updatedAt || new Date(0).toISOString()
+  }));
+  storeSnippets(snippetsToStore);
+  return snippetsToStore;
 };
 
 export const storeSnippets = (snippets: Snippet[]): void => {
