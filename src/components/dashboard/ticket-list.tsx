@@ -79,12 +79,6 @@ export function TicketList({ initialTickets }: TicketListProps) {
     });
   }, [currentTickets, searchTerm, statusFilter, urgencyFilter]);
 
-  const getAssigneeName = (userId?: string) => {
-    if (!userId) return "Unassigned";
-    const user = mockUsers.find(u => u.id === userId && u.role === 'IT_Support');
-    return user ? user.name : "Unknown";
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row gap-4 items-center">
@@ -126,7 +120,6 @@ export function TicketList({ initialTickets }: TicketListProps) {
                 <TableHead>Requester</TableHead>
                 <TableHead className="text-center">Status</TableHead>
                 <TableHead className="text-center">Urgency</TableHead>
-                <TableHead>Assigned To</TableHead>
                 <TableHead>Last Updated</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -149,7 +142,6 @@ export function TicketList({ initialTickets }: TicketListProps) {
                         {ticket.urgency}
                         </div>
                     </TableCell>
-                    <TableCell>{getAssigneeName(ticket.assignedTo)}</TableCell>
                     <TableCell>{formatDistanceToNow(new Date(ticket.updatedAt), { addSuffix: true })}</TableCell>
                     <TableCell className="text-right">
                     <Button asChild variant="ghost" size="icon">
@@ -163,7 +155,7 @@ export function TicketList({ initialTickets }: TicketListProps) {
                 ))
             ) : (
                 <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                     No tickets found.
                 </TableCell>
                 </TableRow>
