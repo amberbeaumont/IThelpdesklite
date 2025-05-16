@@ -49,7 +49,7 @@ export function SidebarNav() {
 
   return (
     <>
-      <SidebarHeader className="flex items-center justify-between p-3">
+      <SidebarHeader className="flex items-center p-3">
         <div className="flex items-center gap-2">
             <h1 className="text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Lofty IT Support</h1>
             <img 
