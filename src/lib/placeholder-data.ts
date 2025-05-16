@@ -2,10 +2,10 @@
 import type { Ticket, User, Snippet, ProblemType, Urgency, TicketStatus, Equipment, Report, Note, Bookmark, Document } from './types';
 
 export const mockUsers: User[] = [
-  { id: 'user1', name: 'Alice Wonderland', email: 'alice@example.com', role: 'User' },
-  { id: 'user2', name: 'Bob The Builder', email: 'bob@example.com', role: 'User' },
-  { id: 'it1', name: 'Charlie Root', email: 'charlie@support.com', role: 'IT_Support' },
-  { id: 'it2', name: 'Diana Prince', email: 'diana@support.com', role: 'IT_Support' },
+  { id: 'user1', name: 'Alice Wonderland', email: 'alice@example.com', phone: '555-0101', role: 'User' },
+  { id: 'user2', name: 'Bob The Builder', email: 'bob@example.com', phone: '555-0102', role: 'User' },
+  { id: 'it1', name: 'Charlie Root', email: 'charlie@support.com', phone: '555-0201', role: 'IT_Support' },
+  { id: 'it2', name: 'Diana Prince', email: 'diana@support.com', phone: '555-0202', role: 'IT_Support' },
 ];
 
 export const problemTypes: ProblemType[] = ["Hardware", "Software", "Network", "Account", "Other"];

@@ -75,7 +75,7 @@ export function UserDetailsDialog({
             <UserCircle className="h-7 w-7 text-primary" /> User Details: {user.name}
           </DialogTitle>
           <DialogDescription>
-            Role: {user.role === "IT_Support" ? "IT Support" : "User"} | Email: {user.email}
+            Role: {user.role === "IT_Support" ? "IT Support" : "User"} | Email: {user.email} {user.phone && `| Phone: ${user.phone}`}
           </DialogDescription>
         </DialogHeader>
         

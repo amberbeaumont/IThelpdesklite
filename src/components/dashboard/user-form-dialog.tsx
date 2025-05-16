@@ -36,6 +36,9 @@ import { ClientOnly } from "@/components/client-only";
 const userFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(50, "Name must be 50 characters or less."),
   email: z.string().email({ message: "Please enter a valid email address." }),
+  phone: z.string().optional().refine(val => !val || /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/.test(val), {
+    message: "Please enter a valid phone number (e.g., 555-123-4567).",
+  }),
   role: z.enum(["User", "IT_Support"], {
     required_error: "Please select a role.",
   }),
@@ -61,6 +64,7 @@ export function UserFormDialog({
     defaultValues: {
       name: "",
       email: "",
+      phone: "",
       role: "User",
     },
   });
@@ -71,12 +75,14 @@ export function UserFormDialog({
         form.reset({
           name: userToEdit.name,
           email: userToEdit.email,
+          phone: userToEdit.phone || "",
           role: userToEdit.role,
         });
       } else {
         form.reset({
           name: "",
           email: "",
+          phone: "",
           role: "User",
         });
       }
@@ -129,6 +135,21 @@ export function UserFormDialog({
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="e.g. jane.doe@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </ClientOnly>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <ClientOnly>
+                    <FormLabel>Phone Number (Optional)</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="e.g. 555-123-4567" {...field} />
                     </FormControl>
                     <FormMessage />
                   </ClientOnly>

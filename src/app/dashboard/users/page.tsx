@@ -29,9 +29,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { UserFormDialog, type UserFormData } from "@/components/dashboard/user-form-dialog";
-import { UserDetailsDialog } from "@/components/dashboard/user-details-dialog"; // New Import
+import { UserDetailsDialog } from "@/components/dashboard/user-details-dialog";
 import { Users, PlusCircle, Edit3, Trash2, UserCircle2 } from "lucide-react";
-import { mockUsers, mockTickets, mockEquipment } from "@/lib/placeholder-data"; // Import tickets and equipment
+import { mockUsers, mockTickets, mockEquipment } from "@/lib/placeholder-data"; 
 import type { User, Ticket, Equipment } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -131,7 +131,7 @@ export default function UsersPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
                     <TableHead className="text-center">Role</TableHead>
                     <TableHead className="text-right w-[120px]">Actions</TableHead>
                   </TableRow>
@@ -144,7 +144,7 @@ export default function UsersPage() {
                       className="cursor-pointer hover:bg-muted/50"
                     >
                       <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.phone || "N/A"}</TableCell>
                       <TableCell className="text-center">
                         <Badge variant={user.role === "IT_Support" ? "default" : "secondary"}>
                           {user.role === "IT_Support" ? "IT Support" : "User"}
