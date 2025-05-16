@@ -6,11 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { mockTickets, mockEquipment, mockUsers } from "@/lib/placeholder-data";
 import type { Ticket, Equipment, User } from "@/lib/types";
-import { BarChartBig, ChevronDown, FileText, FileSpreadsheet, Settings2, ArrowUpZA, ArrowDownAZ, Minus } from "lucide-react";
+import { BarChartBig, ChevronDown, FileText, FileSpreadsheet, Settings2, ArrowUpZA, ArrowDownAZ, Minus, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 type DataSource = "tickets" | "equipment" | "users" | "";
 
@@ -140,7 +143,6 @@ const ALL_REPORT_FIELDS_MAP = new Map<string, ReportField>(
   ALL_REPORT_FIELDS.map(field => [field.key, field])
 );
 
-// Helper function to extract text from React nodes for CSV export
 function getNodeText(node: React.ReactNode): string {
   if (node === null || node === undefined || typeof node === 'boolean') {
     return '';
@@ -152,19 +154,13 @@ function getNodeText(node: React.ReactNode): string {
     return node.map(getNodeText).join('');
   }
   if (React.isValidElement(node) && node.props.children) {
-    // Basic attempt to get text from components like <Badge>Text</Badge>
-    // This might need refinement for more complex components.
     return getNodeText(node.props.children);
   }
-  // Fallback for other React element types or complex objects
   if (React.isValidElement(node) && (node.type === 'svg' || typeof node.type === 'function')) {
-    // Try to get 'aria-label' if it's an icon or a component that might have one
     if (node.props['aria-label']) return String(node.props['aria-label']);
-    // For specific components like Badge, we might already be handling children above.
-    // For other functional components without simple text children, return placeholder.
     return `[${typeof node.type === 'function' ? node.type.name || 'Component' : 'Element'}]`;
   }
-  return ''; // Or some placeholder like '[Object]'
+  return '';
 }
 
 
@@ -176,6 +172,9 @@ export default function ReportsPage() {
   const [reportHeaders, setReportHeaders] = React.useState<ReportField[]>([]);
   
   const [sortConfig, setSortConfig] = React.useState<{ key: string | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'asc' });
+
+  const [startDate, setStartDate] = React.useState<Date | undefined>();
+  const [endDate, setEndDate] = React.useState<Date | undefined>();
 
   React.useEffect(() => {
     if (!dataSource || selectedFieldKeys.length === 0) {
@@ -192,12 +191,33 @@ export default function ReportsPage() {
 
     let rawData: any[] = [];
     if (dataSource === "tickets") {
-      rawData = mockTickets;
+      rawData = mockTickets.map(t => ({...t, createdAt: new Date(t.createdAt)}));
     } else if (dataSource === "equipment") {
-      rawData = mockEquipment;
+      rawData = mockEquipment.map(e => ({...e, purchaseDate: new Date(e.purchaseDate)}));
     } else if (dataSource === "users") {
       rawData = mockUsers;
     }
+
+    // Apply date filter
+    if (startDate || endDate) {
+      rawData = rawData.filter(item => {
+        let itemDate: Date | null = null;
+        if (dataSource === "tickets" && item.createdAt) {
+          itemDate = new Date(item.createdAt);
+        } else if (dataSource === "equipment" && item.purchaseDate) {
+          itemDate = new Date(item.purchaseDate);
+        }
+        // No direct date field for Users to filter by in this iteration
+
+        if (!itemDate) return true; // Keep if no relevant date field for filtering this item type
+
+        const isAfterStartDate = startDate ? itemDate >= new Date(new Date(startDate).setHours(0,0,0,0)) : true;
+        const isBeforeEndDate = endDate ? itemDate <= new Date(new Date(endDate).setHours(23,59,59,999)) : true;
+        
+        return isAfterStartDate && isBeforeEndDate;
+      });
+    }
+
 
     const allMockData = { users: mockUsers, tickets: mockTickets, equipment: mockEquipment };
     let processedData = rawData.map(item => {
@@ -210,7 +230,6 @@ export default function ReportsPage() {
 
     if (sortConfig.key) {
       processedData.sort((a, b) => {
-        // For sorting, try to get primitive values if possible, or stringify nodes
         const valA = typeof a[sortConfig.key!] !== 'object' ? a[sortConfig.key!] : getNodeText(a[sortConfig.key!]);
         const valB = typeof b[sortConfig.key!] !== 'object' ? b[sortConfig.key!] : getNodeText(b[sortConfig.key!]);
 
@@ -223,14 +242,13 @@ export default function ReportsPage() {
         if (typeof valA === 'string' && typeof valB === 'string') {
           return sortConfig.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
         }
-        // Fallback for other types (like React nodes which might be objects/booleans)
         const strA = String(valA).toLowerCase();
         const strB = String(valB).toLowerCase();
         return sortConfig.direction === 'asc' ? strA.localeCompare(strB) : strB.localeCompare(strA);
       });
     }
     setReportData(processedData);
-  }, [dataSource, selectedFieldKeys, sortConfig]);
+  }, [dataSource, selectedFieldKeys, sortConfig, startDate, endDate]);
 
   const handleFieldSelectionChange = (fieldKey: string) => {
     setSelectedFieldKeys(prevSelectedKeys => {
@@ -240,7 +258,7 @@ export default function ReportsPage() {
       if (isCurrentlySelected) {
         newSelectedFieldKeys = prevSelectedKeys.filter(key => key !== fieldKey);
       } else {
-        newSelectedFieldKeys = [...prevSelectedKeys, fieldKey]; // Add to end, preserving order
+        newSelectedFieldKeys = [...prevSelectedKeys, fieldKey];
       }
 
       if (newSelectedFieldKeys.length > 0) {
@@ -249,10 +267,12 @@ export default function ReportsPage() {
         
         if (firstFieldDetails && (dataSource === "" || dataSource !== firstFieldDetails.source)) {
           setDataSource(firstFieldDetails.source as DataSource);
-          // If the data source changes, we might want to clear fields not related to the new source,
-          // or more simply, let the user manage it. For now, just set the source.
-          // Optionally, filter newSelectedFieldKeys to only those matching the new source:
-          // newSelectedFieldKeys = newSelectedFieldKeys.filter(key => ALL_REPORT_FIELDS_MAP.get(key)?.source === firstFieldDetails.source);
+           // When primary source changes, we should clear unrelated fields to avoid confusion.
+           // For simplicity, let's clear all fields if the *first* selected field changes the data source.
+           // Or better: if the new field's source is different from the current dataSource, reset selectedFields to just this new field.
+          if (dataSource !== "" && dataSource !== firstFieldDetails.source) {
+            newSelectedFieldKeys = [firstActualSelectedKey]; 
+          }
         }
       } else { 
         if (dataSource !== "") { 
@@ -282,10 +302,10 @@ export default function ReportsPage() {
     }
 
     const escapeCSVCell = (cellData: any): string => {
-      const text = getNodeText(cellData); // Use helper to get text from ReactNode
-      const result = String(text).replace(/"/g, '""'); // Escape double quotes
+      const text = getNodeText(cellData); 
+      const result = String(text).replace(/"/g, '""'); 
       if (result.includes(',')) {
-        return `"${result}"`; // Enclose in double quotes if it contains a comma
+        return `"${result}"`; 
       }
       return result;
     };
@@ -313,13 +333,12 @@ export default function ReportsPage() {
     }
   };
 
-
   const renderFieldSelectorDropdown = (fields: ReportField[], title: string) => (
-    <div className="flex-1 space-y-2">
-      <label className="text-sm font-medium block mb-2">{title}</label>
+    <div className="flex-1 space-y-2 min-w-[200px]"> {/* Added min-width */}
+      <label className="text-sm font-medium block mb-1">{title}</label>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="w-full sm:w-auto justify-between">
+          <Button variant="outline" className="w-full justify-between">
              {`${selectedFieldKeys.filter(key => fields.some(f => f.key === key)).length} / ${fields.length} selected`}
             <ChevronDown className="ml-2 h-4 w-4" />
           </Button>
@@ -342,7 +361,6 @@ export default function ReportsPage() {
     </div>
   );
 
-
   return (
     <div className="space-y-8">
       <Card className="shadow-md">
@@ -352,12 +370,52 @@ export default function ReportsPage() {
             Custom Report Builder
           </CardTitle>
           <CardDescription>
-           Select fields from Tickets, Equipment, or Users to build your report. The first field selected will determine the report's primary data focus (what each row represents). Column order is based on selection order. Click table headers to sort.
+           Select fields from Tickets, Equipment, or Users to build your report. The first field selected will determine the report's primary data focus (what each row represents). Filter by date for Tickets (Created At) and Equipment (Purchase Date). Column order is based on selection order. Click table headers to sort.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+             <div className="flex flex-col sm:flex-row gap-4 items-end border-b pb-4 mb-4">
+                <div className="flex-1 space-y-2 min-w-[200px]">
+                    <label htmlFor="start-date" className="text-sm font-medium block mb-1">Start Date</label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            id="start-date"
+                            variant={"outline"}
+                            className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {startDate ? format(startDate, "PPP") : <span>Pick a start date</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                        <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                <div className="flex-1 space-y-2 min-w-[200px]">
+                    <label htmlFor="end-date" className="text-sm font-medium block mb-1">End Date</label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <Button
+                            id="end-date"
+                            variant={"outline"}
+                            className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {endDate ? format(endDate, "PPP") : <span>Pick an end date</span>}
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                        <Calendar mode="single" selected={endDate} onSelect={setEndDate} disabled={(date) => startDate && date < startDate} initialFocus />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                 <Button variant="outline" onClick={() => { setStartDate(undefined); setEndDate(undefined);}} className="h-10">Clear Dates</Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
               {renderFieldSelectorDropdown(TICKET_REPORT_FIELDS, "Ticket Fields")}
               {renderFieldSelectorDropdown(EQUIPMENT_REPORT_FIELDS, "Equipment Fields")}
               {renderFieldSelectorDropdown(USER_REPORT_FIELDS, "User Fields")}
@@ -420,7 +478,7 @@ export default function ReportsPage() {
            )}
            {dataSource && numSelectedFields > 0 && reportData.length === 0 && (
              <div className="text-center text-muted-foreground py-8">
-                No data available for the selected fields and data focus.
+                No data available for the selected fields and filters.
             </div>
            )}
         </CardContent>
@@ -433,3 +491,4 @@ export default function ReportsPage() {
     
 
       
+
