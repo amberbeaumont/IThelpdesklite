@@ -10,9 +10,8 @@ import {
   HardDrive,
   BarChartBig,
   LogOut,
-  LifeBuoy,
-  NotebookText,
-  ClipboardEdit, // Added icon for Snippets
+  NotebookText, // Added import
+  ClipboardEdit,
 } from "lucide-react";
 import {
   SidebarMenu,
@@ -33,7 +32,7 @@ const navItems = [
   { href: "/dashboard/equipment", label: "IT Equipment", icon: HardDrive },
   { href: "/dashboard/reports", label: "Reports", icon: BarChartBig },
   { href: "/dashboard/notes-docs", label: "Notes & Docs", icon: NotebookText },
-  { href: "/dashboard/snippets", label: "Snippets", icon: ClipboardEdit }, // New item for Snippets
+  { href: "/dashboard/snippets", label: "Snippets", icon: ClipboardEdit },
 ];
 
 export function SidebarNav() {
@@ -52,7 +51,12 @@ export function SidebarNav() {
     <>
       <SidebarHeader className="flex items-center justify-between p-3">
         <div className="flex items-center gap-2">
-            <LifeBuoy className="h-8 w-8 text-primary" />
+            <img 
+              src="https://loftybuildinggroup.com.au/wp-content/uploads/2021/06/cropped-favicon-192x192.png" 
+              alt="Lofty IT Support Logo" 
+              className="h-8 w-8"
+              data-ai-hint="company logo"
+            />
             <h1 className="text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Lofty IT Support</h1>
         </div>
       </SidebarHeader>
