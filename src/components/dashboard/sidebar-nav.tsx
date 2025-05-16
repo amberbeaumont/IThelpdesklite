@@ -12,6 +12,7 @@ import {
   LogOut,
   NotebookText, 
   ClipboardEdit,
+  Archive, // Added Archive icon
 } from "lucide-react";
 import {
   SidebarMenu,
@@ -28,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/tickets", label: "Tickets", icon: ClipboardList },
+  { href: "/dashboard/archived-tickets", label: "Archived Tickets", icon: Archive }, // Added Archived Tickets
   { href: "/dashboard/users", label: "Users", icon: Users },
   { href: "/dashboard/equipment", label: "IT Equipment", icon: HardDrive },
   { href: "/dashboard/reports", label: "Reports", icon: BarChartBig },
