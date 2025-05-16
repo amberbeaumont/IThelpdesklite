@@ -10,7 +10,7 @@ import {
   HardDrive,
   BarChartBig,
   LogOut,
-  NotebookText, // Added import
+  NotebookText, 
   ClipboardEdit,
 } from "lucide-react";
 import {
@@ -51,13 +51,13 @@ export function SidebarNav() {
     <>
       <SidebarHeader className="flex items-center justify-between p-3">
         <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Lofty IT Support</h1>
             <img 
               src="https://loftybuildinggroup.com.au/wp-content/uploads/2021/06/cropped-favicon-192x192.png" 
               alt="Lofty IT Support Logo" 
               className="h-8 w-8"
               data-ai-hint="company logo"
             />
-            <h1 className="text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Lofty IT Support</h1>
         </div>
       </SidebarHeader>
       
