@@ -53,7 +53,7 @@ export function SidebarNav() {
       <SidebarHeader className="flex items-center justify-between p-3">
         <div className="flex items-center gap-2">
             <LifeBuoy className="h-8 w-8 text-primary" />
-            <h1 className="text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">HelpDesk Lite</h1>
+            <h1 className="text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Lofty IT Support</h1>
         </div>
       </SidebarHeader>
       
