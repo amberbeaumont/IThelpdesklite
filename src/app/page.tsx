@@ -4,22 +4,12 @@ import { FilePlus2 } from "lucide-react";
 import { createClient } from '@/utils/supabase/server'
 import { cookies } from 'next/headers'
 
-export default async function Page() {
+export default async function HomePage() {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
   const { data: todos } = await supabase.from('todos').select()
 
-  return (
-    <ul>
-      {todos?.map((todo) => (
-        <li>{todo}</li>
-      ))}
-    </ul>
-  )
-}
-
-export default function HomePage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 bg-background">
       <div className="w-full max-w-3xl">
@@ -40,6 +30,16 @@ export default function HomePage() {
         <p className="text-center mt-6 text-sm text-muted-foreground">
           Already have an account or an IT staff member? <a href="/login" className="text-primary hover:underline">Login here</a>.
         </p>
+        {todos && (
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-4">Todos</h2>
+            <ul>
+              {todos.map((todo) => (
+                <li key={todo.id}>{todo.title}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </main>
   );
