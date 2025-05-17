@@ -1,10 +1,14 @@
 import { TicketSubmissionForm } from "@/components/ticket-submission-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilePlus2 } from "lucide-react";
-import { createClient } from '@/utils/supabase/client'
+import { createClient } from '@/utils/supabase/server'
+import { cookies } from 'next/headers'
  
 export default async function HomePage() {
-  const supabase = createClient();
+  const cookieStore = cookies()
+  const supabase = createClient(cookieStore)
+
+  const { data: tickets } = await supabase.from('tickets').select()
   
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 bg-background">
