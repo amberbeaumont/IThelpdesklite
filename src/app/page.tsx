@@ -1,8 +1,11 @@
 import { TicketSubmissionForm } from "@/components/ticket-submission-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilePlus2 } from "lucide-react";
-
-export default function HomePage() {
+import { createClient } from '@/utils/supabase/client'
+ 
+export default async function HomePage() {
+  const supabase = createClient();
+  
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 bg-background">
       <div className="w-full max-w-3xl">
