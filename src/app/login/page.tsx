@@ -53,15 +53,14 @@ export default function LoginPage() {
   async function onSubmit(data: LoginFormValues) {
     setIsSubmitting(true);
 
-    // First check if the user exists
     const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
+
     if (signInError) {
       let errorMessage = "Invalid email or password. Please try again.";
       
-      // Handle specific error cases
       if (signInError.message.includes("Email not confirmed")) {
         errorMessage = "Please verify your email address before logging in.";
       } else if (signInError.message.includes("Invalid login credentials")) {
@@ -77,15 +76,25 @@ export default function LoginPage() {
       return;
     }
 
-    // Check if the user has IT_Support role
-    const { data: { role } } = await supabase.auth.getUser();
-    if (!user?.user_metadata?.role || user.user_metadata.role !== "IT_Support") {
+    // Get user metadata to check role
+    const { data: { user: userData }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      toast({
+        title: "Error",
+        description: "Failed to verify user role. Please try again.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!userData?.user_metadata?.role || userData.user_metadata.role !== "IT_Support") {
       toast({
         title: "Access Denied",
         description: "This portal is only accessible to IT support staff.",
         variant: "destructive",
       });
-      // Sign out the user since they don't have access
       await supabase.auth.signOut();
       setIsSubmitting(false);
       return;
@@ -96,6 +105,7 @@ export default function LoginPage() {
       });
       router.push("/dashboard");
     }
+    setIsSubmitting(false);
   }
 
   return (
