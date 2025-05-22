@@ -27,8 +27,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, KeyRound } from "lucide-react";
 import { ClientOnly } from "@/components/client-only";
-import { createClient } from "@/utils/supabase/server";
-import LoginPageClient from './login-client';
+import { createClient } from "@/utils/supabase/client";
 
 const loginFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -41,7 +40,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const supabase = createClient(); // Create Supabase client
+  const supabase = createClient();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
