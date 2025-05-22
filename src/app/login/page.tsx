@@ -27,7 +27,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, KeyRound } from "lucide-react";
 import { ClientOnly } from "@/components/client-only";
-import { createClient } from "@/utils/supabase/client"; // Import Supabase client
+import { createClient } from "@/utils/supabase/server";
+import LoginPageClient from './login-client';
 
 const loginFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
