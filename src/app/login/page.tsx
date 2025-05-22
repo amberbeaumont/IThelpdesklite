@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, KeyRound } from "lucide-react";
 import { ClientOnly } from "@/components/client-only";
+import { createClient } from "@/utils/supabase/client"; // Import Supabase client
 
 const loginFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -39,6 +40,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const supabase = createClient(); // Create Supabase client
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
@@ -50,25 +52,25 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginFormValues) {
     setIsSubmitting(true);
-    // Simulate API call for login
-    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Mock login success for demonstration purposes
-    if (data.email === "it@example.com" && data.password === "password") {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    });
+
+    if (error) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid email or password. Please try again.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+    } else {
       toast({
         title: "Login Successful",
         description: "Welcome back! Redirecting to dashboard...",
       });
-      // In a real app, you'd set a session/cookie here.
-      // For this mock, we'll just redirect.
       router.push("/dashboard");
-    } else {
-      toast({
-        title: "Login Failed",
-        description: "Invalid email or password. Please try again.",
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
     }
   }
 
