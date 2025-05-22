@@ -46,8 +46,8 @@ export default function AllTicketsPage() {
               {statusParam && <span className="block mt-1">Currently filtered by status: <strong>{statusParam}</strong>.</span>}
             </CardDescription>
           </div>
-          <Link href="/dashboard/tickets/new" passHref>
-            <Button>
+          <Link href="/dashboard/tickets/new">
+            <Button asChild>
               <PlusCircle className="mr-2 h-4 w-4" /> New Ticket
             </Button>
           </Link>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from 'next/link';
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -126,7 +127,7 @@ export default function LoginPage() {
                 Forgot your password? Contact administrator.
             </p>
             <p className="mt-4 text-muted-foreground">
-                Not an IT staff member? <a href="/" className="text-primary hover:underline">Submit a ticket here</a>.
+                Not an IT staff member? <Link href="/" className="text-primary hover:underline">Submit a ticket here</Link>.
             </p>
         </CardFooter>
       </Card>

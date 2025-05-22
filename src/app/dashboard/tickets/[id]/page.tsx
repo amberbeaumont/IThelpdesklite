@@ -66,12 +66,12 @@ export default function SingleTicketPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button asChild variant="outline" size="icon">
-          <Link href="/dashboard/tickets">
+        <Link href="/dashboard/tickets">
+          <Button variant="outline" size="icon">
             <ArrowLeft className="h-4 w-4" />
             <span className="sr-only">Back to tickets</span>
-          </Link>
-        </Button>
+          </Button>
+        </Link>
         <h1 className="text-2xl font-semibold tracking-tight">
           Ticket Details: #{ticket.id}
         </h1>

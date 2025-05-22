@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { TicketSubmissionForm } from "@/components/ticket-submission-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilePlus2 } from "lucide-react";
@@ -28,7 +29,7 @@ export default async function HomePage() {
           </CardContent>
         </Card>
         <p className="text-center mt-6 text-sm text-muted-foreground">
-          Already have an account or an IT staff member? <a href="/login" className="text-primary hover:underline">Login here</a>.
+          Already have an account or an IT staff member? <Link href="/login" className="text-primary hover:underline">Login here</Link>.
         </p>
       </div>
     </main>
