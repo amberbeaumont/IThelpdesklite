@@ -1,0 +1,137 @@
+{
+  "title": "AI System Prompt — Coding Rules & Patterns for App Development",
+  "purpose": "To ensure all AI coding assistants, LLMs, and developers follow a consistent, secure, and high-quality process for building modern apps with Next.js, React, TypeScript, Supabase, Tailwind CSS, Netlify, Vercel, and related tools.",
+  "critical_pattern_compliance": {
+    "note": "These rules OVERRIDE all others and must be enforced strictly. Non-compliance WILL break your app, cause security/auth issues, or lead to data loss.",
+    "supabase_auth_ssr": {
+      "never": [
+        "Use cookies.get, cookies.set, cookies.remove.",
+        "Import from @supabase/auth-helpers-nextjs (deprecated)."
+      ],
+      "always": [
+        "Use only the getAll() and setAll() cookie patterns (see code below).",
+        "Import only from @supabase/ssr for client/server/middleware.",
+        "Use the exact utility and middleware implementations shown below—do NOT deviate."
+      ],
+      "never_do_this": "// DEPRECATED\n{\n  cookies: {\n    get(name: string) { ... }\n    set(name: string, value: string) { ... }\n    remove(name: string) { ... }\n  }\n}\n// And never use:\nimport { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'\nimport { createClientComponentClient } from '@supabase/auth-helpers-nextjs'",
+      "always_do_this": "// Browser Client\nimport { createBrowserClient } from '@supabase/ssr'\nexport function createClient() {\n  return createBrowserClient(\n    process.env.NEXT_PUBLIC_SUPABASE_URL!,\n    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!\n  )\n}\n\n// Server Client\nimport { createServerClient } from '@supabase/ssr'\nimport { cookies } from 'next/headers'\nexport async function createClient() {\n  const cookieStore = await cookies()\n  return createServerClient(\n    process.env.NEXT_PUBLIC_SUPABASE_URL!,\n    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,\n    {\n      cookies: {\n        getAll() {\n          return cookieStore.getAll()\n        },\n        setAll(cookiesToSet) {\n          try {\n            cookiesToSet.forEach(({ name, value, options }) =>\n              cookieStore.set(name, value, options)\n            )\n          } catch {\n            // Can ignore in Server Components if error\n          }\n        },\n      },\n    }\n  )\n}\n\n// Middleware\nimport { createServerClient } from '@supabase/ssr'\nimport { NextResponse, type NextRequest } from 'next/server'\nexport async function middleware(request: NextRequest) {\n  let supabaseResponse = NextResponse.next({ request })\n  const supabase = createServerClient(\n    process.env.NEXT_PUBLIC_SUPABASE_URL!,\n    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,\n    {\n      cookies: {\n        getAll() { return request.cookies.getAll() },\n        setAll(cookiesToSet) {\n          cookiesToSet.forEach(({ name, value, options }) =>\n            request.cookies.set(name, value))\n          supabaseResponse = NextResponse.next({ request })\n          cookiesToSet.forEach(({ name, value, options }) =>\n            supabaseResponse.cookies.set(name, value, options))\n        },\n      },\n    }\n  )\n  // Do not run code between createServerClient and supabase.auth.getUser()\n  const {\n    data: { user },\n  } = await supabase.auth.getUser()\n  if (\n    !user &&\n    !request.nextUrl.pathname.startsWith('/login') &&\n    !request.nextUrl.pathname.startsWith('/auth')\n  ) {\n    const url = request.nextUrl.clone()\n    url.pathname = '/login'\n    return NextResponse.redirect(url)\n  }\n  return supabaseResponse\n}",
+      "verification_steps": [
+        "Are you using ONLY getAll and setAll?",
+        "Are you importing ONLY from @supabase/ssr?",
+        "Is there ANY use of get, set, remove, or auth-helpers-nextjs?",
+        "If any of the above are violated, STOP, FIX, and EXPLAIN before outputting code."
+      ]
+    },
+    "supabase_edge_functions": {
+      "rules": [
+        "Use Web APIs, Deno/Node built-ins by default.",
+        "All external dependencies: use npm: or jsr: with version (never CDN or bare imports).",
+        "Share reusable code only via supabase/functions/_shared (relative imports).",
+        "Use Deno's built-in Deno.serve; never import serve from a CDN."
+      ],
+      "templates": "// Hello World\nDeno.serve(async (req: Request) => { ... })\n\n// External dependency with version\nimport express from \"npm:express@4.18.2\""
+    },
+    "supabase_declarative_db_schema": {
+      "rules": [
+        "All schema changes MUST be defined in .sql files in supabase/schemas/.",
+        "NEVER modify supabase/migrations/ directly except for known caveats.",
+        "Always generate migrations with: supabase db diff -f <migration_name>",
+        "Migrations: YYYYMMDDHHmmss_short_description.sql (UTC time)",
+        "Use only lowercase, snake_case, plural for tables, singular for columns.",
+        "All tables MUST enable Row Level Security (RLS) by default.",
+        "Separate, granular RLS policies for each operation/role. Prefer PERMISSIVE.",
+        "Add schema/table/column comments for clarity."
+      ]
+    },
+    "row_level_security_policies": {
+      "rules": [
+        "Only use CREATE POLICY or ALTER POLICY (no other queries).",
+        "One policy per operation and role.",
+        "Use double apostrophe in SQL strings.",
+        "Use auth.uid() for user checks.",
+        "Prefer PERMISSIVE over RESTRICTIVE policies (explain why).",
+        "Output markdown SQL blocks only."
+      ]
+    },
+    "supabase_postgres_functions": {
+      "rules": [
+        "Use SECURITY INVOKER unless SECURITY DEFINER is required (explain why).",
+        "Always set search_path = ''.",
+        "Fully qualify all object names.",
+        "Explicit input/output types.",
+        "Use IMMUTABLE/STABLE if possible.",
+        "For triggers, include a CREATE TRIGGER statement."
+      ]
+    },
+    "migration_and_sql_style": {
+      "rules": [
+        "Lowercase reserved words.",
+        "snake_case for tables/columns, plural tables, singular columns.",
+        "Dates in ISO 8601.",
+        "Always comment complex SQL and destructive actions."
+      ]
+    }
+  },
+  "general_principles_and_app_building_rules": {
+    "tech_stack_and_structure": [
+      "Latest stable React, Next.js (App Router), TypeScript, Supabase, Tailwind CSS, Shadcn UI, Radix UI, Netlify, Vercel, GitHub.",
+      "Only TypeScript (.ts/.tsx). No JavaScript unless requested.",
+      "Prefer functional, modular, declarative code.",
+      "Directory names: lowercase-with-dashes.",
+      "Named exports for all components.",
+      "Descriptive variables (e.g., isLoading, hasError)."
+    ],
+    "workflow": [
+      "Plan: Describe your approach in pseudocode or bullet points first.",
+      "Component Search: Check packages/ui/src/components and apps/spa/src/components for existing components.",
+      "Code Output: Output full, production-ready, bug-free code. No placeholders, stubs, or TODOs.",
+      "Dependencies: List affected/related files. Request the latest file if not sure."
+    ],
+    "ui_styling_accessibility": [
+      "Use Tailwind CSS (mobile-first, responsive, accessible).",
+      "Shadcn UI & Radix UI for core components.",
+      "Next.js <Image /> for images (with width/height/lazy loading).",
+      "Implement error boundaries (error.tsx) and loading (loading.tsx).",
+      "Metadata via Next.js for SEO.",
+      "Always follow a11y and ARIA best practices."
+    ],
+    "performance_optimisation": [
+      "Minimise \"use client\", useEffect, useState; prefer Server Components and SSR.",
+      "Wrap client components in <Suspense>.",
+      "Dynamically import non-critical UI.",
+      "Optimise for Web Vitals."
+    ],
+    "supabase_integration": [
+      "Use only Supabase SDK for DB/auth.",
+      "Always enable RLS and follow security best practices.",
+      "For all Auth/Edge Functions/Schema, see Critical Pattern Compliance above."
+    ],
+    "ai_vercel_ai_sdk_langchain": [
+      "Use Vercel AI SDK and LangChain for AI and RAG features.",
+      "Follow best practices for streaming/gen AI UX."
+    ],
+    "netlify_and_deployment": [
+      "Follow official Netlify conventions for functions, edge, background, etc.",
+      "Never put user code in .netlify.",
+      "No CORS headers unless requested.",
+      "Use env vars securely—never hardcode secrets."
+    ],
+    "user_interaction_and_tone": [
+      "Ask clarifying questions if needed.",
+      "Never guess; say “I don’t know” if unsure.",
+      "Use Australian English; be concise, clear, supportive, and professional."
+    ]
+  },
+  "component_prompt_template": "Create a React component named {ComponentName} using TypeScript and Tailwind CSS. It should {describe the functionality}. Props: {list of props with types}. Styling/behaviour notes: {any specifics}. Please provide full code.",
+  "ai_code_output_template": "// path/to/filename.tsx\n\n// [full, clean, production-ready code goes here]\n\n// List dependencies and mention related files if required.",
+  "ai_checklist_before_output": [
+    "Are all critical patterns enforced (Supabase Auth, Edge, DB, RLS, etc.)?",
+    "Is code free of deprecated/forbidden patterns?",
+    "Is output complete, bug-free, and formatted as TypeScript?",
+    "Are all user requirements met?",
+    "Are dependencies/related files mentioned?",
+    "Is tone clear, concise, supportive?"
+  ],
+  "non_compliance": "If the user provides or requests deprecated/forbidden patterns, HALT. Respond with a compliant example and a clear explanation.",
+  "footer": "This file should be referenced in all developer onboarding, README, and AI tool config as the system prompt and coding standard for this project."
+}
