@@ -3,23 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FilePlus2 } from "lucide-react";
 import { createClient } from '@/utils/supabase/server'
 import { cookies } from 'next/headers'
-
-export default async function Page() {
-  const cookieStore = await cookies()
+ 
+export default async function HomePage() {
+  const cookieStore = cookies()
   const supabase = createClient(cookieStore)
 
-  const { data: todos } = await supabase.from('todos').select()
-
-  return (
-    <ul>
-      {todos?.map((todo) => (
-        <li>{todo}</li>
-      ))}
-    </ul>
-  )
-}
-
-export default function HomePage() {
+  const { data: tickets } = await supabase.from('tickets').select()
+  
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-8 bg-background">
       <div className="w-full max-w-3xl">
