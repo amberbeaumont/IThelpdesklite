@@ -28,12 +28,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { mockUsers, ticketStatuses, urgencies, getStoredTickets, storeSubmittedTickets } from "@/lib/placeholder-data";
 import type { Ticket, TicketStatus, Urgency } from "@/lib/types";
-import { Eye, Filter, CircleAlert, LoaderCircle, UserCircle, CheckCircle2, ChevronDown, Minus, ChevronUp, AlertTriangle, Trash2 } from "lucide-react";
+import { Eye, Filter, CircleAlert, LoaderCircle, UserCircle, CheckCircle2, ChevronDown, Minus, ChevronUp, AlertTriangle, Trash2, FileX2 } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 
 interface TicketListProps {
   initialTickets: Ticket[];
+  hideDeleteButton?: boolean;
 }
 
 const statusIcons: Record<TicketStatus, React.ReactElement> = {
@@ -41,6 +42,7 @@ const statusIcons: Record<TicketStatus, React.ReactElement> = {
   "In Progress": <LoaderCircle className="h-4 w-4 text-blue-500 animate-spin" />,
   "Waiting on User": <UserCircle className="h-4 w-4 text-yellow-500" />,
   "Closed": <CheckCircle2 className="h-4 w-4 text-green-600" />,
+  "Deleted": <FileX2 className="h-4 w-4 text-muted-foreground" />,
 };
 
 const urgencyIcons: Record<Urgency, React.ReactElement> = {
@@ -56,11 +58,12 @@ const getStatusBadgeVariant = (status: TicketStatus): "default" | "secondary" | 
     case "In Progress": return "default";
     case "Waiting on User": return "secondary";
     case "Closed": return "outline";
+    case "Deleted": return "outline"; 
     default: return "default";
   }
 };
 
-export function TicketList({ initialTickets }: TicketListProps) {
+export function TicketList({ initialTickets, hideDeleteButton = false }: TicketListProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<TicketStatus | "all">("all");
@@ -91,56 +94,65 @@ export function TicketList({ initialTickets }: TicketListProps) {
     });
   }, [currentTickets, searchTerm, statusFilter, urgencyFilter]);
 
-  const handleDeleteTicket = (ticket: Ticket) => {
+  const handleDeleteTicketClick = (ticket: Ticket) => {
     setTicketToDelete(ticket);
   };
 
   const confirmDeleteTicket = () => {
     if (!ticketToDelete) return;
 
-    // Update state
-    const updatedTicketsState = currentTickets.filter(t => t.id !== ticketToDelete.id);
-    setCurrentTickets(updatedTicketsState);
+    const updatedTicketData = {
+      ...ticketToDelete,
+      status: "Deleted" as TicketStatus,
+      updatedAt: new Date(),
+    };
 
-    // Update localStorage
+    // Update state
+    setCurrentTickets(prevTickets => 
+      prevTickets.map(t => t.id === updatedTicketData.id ? updatedTicketData : t)
+    );
+    
+    // Update localStorage for "submittedTickets"
     if (typeof window !== 'undefined') {
-        const storedSubmittedTickets = getStoredTickets(); // Assuming this gets from "submittedTickets"
-        const updatedStoredTickets = storedSubmittedTickets.filter(t => t.id !== ticketToDelete.id);
-        
-        // We need a way to save back the potentially modified list that was only in "submittedTickets"
-        // This assumes `storeSubmittedTickets` will overwrite the "submittedTickets" key.
-        // If initialTickets also included mock tickets not in localStorage, this logic might need adjustment
-        // to ensure only the "submittedTickets" part of localStorage is managed here.
-        // For now, this directly manages "submittedTickets"
-        localStorage.setItem("submittedTickets", JSON.stringify(updatedStoredTickets.map(t => ({
+      const storedSubmitted = getStoredTickets(); // Gets from "submittedTickets"
+      const updatedStoredSubmitted = storedSubmitted.map(t => 
+        t.id === updatedTicketData.id ? 
+        { ...updatedTicketData, createdAt: new Date(updatedTicketData.createdAt).toISOString(), updatedAt: new Date(updatedTicketData.updatedAt).toISOString() } 
+        : t
+      );
+      // Ensure dates are ISO strings for storage
+      storeSubmittedTickets(updatedStoredSubmitted.map(t => ({
+        ...t,
+        createdAt: new Date(t.createdAt).toISOString(),
+        updatedAt: new Date(t.updatedAt).toISOString(),
+        comments: t.comments.map(c => ({...c, createdAt: new Date(c.createdAt).toISOString()}))
+      })));
+
+      // Update "allTickets" in localStorage
+      const allTicketsRaw = localStorage.getItem('allTickets');
+      if (allTicketsRaw) {
+        try {
+          let allTicketsData: Ticket[] = JSON.parse(allTicketsRaw).map((t:any) => ({...t, createdAt: new Date(t.createdAt), updatedAt: new Date(t.updatedAt)}));
+          allTicketsData = allTicketsData.map(t => 
+            t.id === updatedTicketData.id ? 
+            updatedTicketData 
+            : t
+          );
+          localStorage.setItem("allTickets", JSON.stringify(allTicketsData.map(t => ({
             ...t,
             createdAt: new Date(t.createdAt).toISOString(),
             updatedAt: new Date(t.updatedAt).toISOString(),
             comments: t.comments.map(c => ({...c, createdAt: new Date(c.createdAt).toISOString()}))
-        }))));
-
-         // Also update 'allTickets' if it's used by other parts of the app for a consistent view,
-         // though this is a bit of a workaround for not having a central state management.
-        const allTicketsRaw = localStorage.getItem('allTickets');
-        if (allTicketsRaw) {
-            try {
-                let allTicketsData: Ticket[] = JSON.parse(allTicketsRaw);
-                allTicketsData = allTicketsData.filter(t => t.id !== ticketToDelete.id);
-                 localStorage.setItem("allTickets", JSON.stringify(allTicketsData.map(t => ({
-                    ...t,
-                    createdAt: new Date(t.createdAt).toISOString(),
-                    updatedAt: new Date(t.updatedAt).toISOString(),
-                    comments: t.comments.map(c => ({...c, createdAt: new Date(c.createdAt).toISOString()}))
-                }))));
-            } catch (e) {
-                console.error("Error updating allTickets in localStorage:", e);
-            }
+          }))));
+        } catch (e) {
+          console.error("Error updating allTickets in localStorage:", e);
         }
+      }
     }
     
     toast({
-      title: "Ticket Deleted",
-      description: `Ticket "${ticketToDelete.subject}" has been successfully deleted.`,
+      title: "Ticket Moved",
+      description: `Ticket "${ticketToDelete.subject}" has been moved to Deleted Items.`,
     });
     setTicketToDelete(null);
   };
@@ -163,7 +175,7 @@ export function TicketList({ initialTickets }: TicketListProps) {
             </SelectTrigger>
             <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                {ticketStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                {ticketStatuses.filter(s => s !== "Deleted").map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
             </SelectContent>
             </Select>
             <Select value={urgencyFilter} onValueChange={(value) => setUrgencyFilter(value as Urgency | "all")}>
@@ -211,21 +223,23 @@ export function TicketList({ initialTickets }: TicketListProps) {
                     </TableCell>
                     <TableCell>{formatDistanceToNow(new Date(ticket.updatedAt), { addSuffix: true })}</TableCell>
                     <TableCell className="text-right">
-                    <Button asChild variant="ghost" size="icon" className="hover:text-primary">
-                        <Link href={`/dashboard/tickets/${ticket.id}`}>
-                        <Eye className="h-4 w-4" />
-                        <span className="sr-only">View Ticket</span>
-                        </Link>
-                    </Button>
-                     <Button variant="ghost" size="icon" onClick={() => handleDeleteTicket(ticket)} className="hover:text-destructive" aria-label={`Delete ticket ${ticket.subject}`}>
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
+                      <Button asChild variant="ghost" size="icon" className="hover:text-primary">
+                          <Link href={`/dashboard/tickets/${ticket.id}`}>
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">View Ticket</span>
+                          </Link>
+                      </Button>
+                     {!hideDeleteButton && (
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteTicketClick(ticket)} className="hover:text-destructive" aria-label={`Delete ticket ${ticket.subject}`}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                     )}
                     </TableCell>
                 </TableRow>
                 ))
             ) : (
                 <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                     No tickets found.
                 </TableCell>
                 </TableRow>
@@ -237,15 +251,15 @@ export function TicketList({ initialTickets }: TicketListProps) {
       <AlertDialog open={!!ticketToDelete} onOpenChange={(open) => !open && setTicketToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Move Ticket to Deleted Items?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the ticket <span className="font-semibold">"{ticketToDelete?.subject}"</span>.
+              This will mark the ticket <span className="font-semibold">"{ticketToDelete?.subject}"</span> as deleted. You can view it in the "Deleted Tickets" section.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setTicketToDelete(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteTicket} className="bg-destructive hover:bg-destructive/90">
-              Delete Ticket
+              Move to Deleted
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

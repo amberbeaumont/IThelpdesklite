@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { TicketList } from "@/components/dashboard/ticket-list";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button"; 
-import { getAllTickets } from "@/lib/placeholder-data"; // Updated import
+import { getAllTickets } from "@/lib/placeholder-data"; 
 import type { Ticket, TicketStatus } from '@/lib/types';
 import { ClipboardList, PlusCircle } from 'lucide-react'; 
 import * as React from 'react';
@@ -17,18 +17,17 @@ export default function AllTicketsPage() {
   const [displayedTickets, setDisplayedTickets] = React.useState<Ticket[]>([]);
 
   React.useEffect(() => {
-    // Load all tickets (mock + localStorage)
     const allTicketsData = getAllTickets();
-    setDisplayedTickets(allTicketsData);
+    // Filter out "Deleted" tickets from the main view
+    setDisplayedTickets(allTicketsData.filter(ticket => ticket.status !== "Deleted"));
   }, []);
 
-  // This memo is for initial filtering if statusParam is present on first load
-  // TicketList itself handles further filtering.
   const initialFilteredTicketsForList = React.useMemo(() => {
     if (statusParam) {
-      return displayedTickets.filter(ticket => ticket.status === statusParam);
+      // Ensure "Deleted" tickets are not shown even if statusParam somehow tries to target them
+      return displayedTickets.filter(ticket => ticket.status === statusParam && ticket.status !== "Deleted");
     }
-    return displayedTickets;
+    return displayedTickets; // displayedTickets is already filtered to exclude "Deleted"
   }, [statusParam, displayedTickets]);
 
 

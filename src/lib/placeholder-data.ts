@@ -10,10 +10,8 @@ export const mockUsers: User[] = [
 
 export const problemTypes: ProblemType[] = ["Hardware", "Software", "Network", "Account", "Other"];
 export const urgencies: Urgency[] = ["Low", "Medium", "High", "Critical"];
-export const ticketStatuses: TicketStatus[] = ["Open", "In Progress", "Waiting on User", "Closed"];
+export const ticketStatuses: TicketStatus[] = ["Open", "In Progress", "Waiting on User", "Closed", "Deleted"];
 
-// Note: Dates are now stored as ISO strings for easier localStorage handling.
-// They should be converted back to Date objects when read for display/logic.
 export const mockTickets: Ticket[] = [
   {
     id: 'TKT001',
@@ -84,7 +82,7 @@ export const mockTickets: Ticket[] = [
   },
 ];
 
-export const initialMockSnippets: Snippet[] = [ // Renamed to avoid conflict if localStorage is empty
+export const initialMockSnippets: Snippet[] = [ 
   { id: 'snip1', title: 'Password Reset Instructions', content: 'To reset your password, please visit [link] and follow the on-screen instructions. If you continue to experience issues, please let us know.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
   { id: 'snip2', title: 'Software Reinstall Guide', content: 'We recommend trying to reinstall the software. Please follow these steps: 1. Uninstall the current version. 2. Restart your computer. 3. Download the latest version from [link]. 4. Install the software. Let us know if this resolves the issue.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
   { id: 'snip3', title: 'Network Troubleshooting Steps', content: 'Please try the following network troubleshooting steps: 1. Restart your modem and router. 2. Check your network cable connections. 3. Try connecting to a different network if possible to isolate the issue. If the problem persists, provide us with details about your network setup.', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
@@ -101,7 +99,6 @@ export const mockReports: Report[] = [
     { id: 'REP002', title: 'Hardware Failure Rates Q1', generatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), data: { laptops: '2%', desktops: '1%', printers: '5%' } },
 ];
 
-// Helper to parse stored tickets from localStorage (specifically "submittedTickets")
 export const getStoredTickets = (): Ticket[] => {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem('submittedTickets');
@@ -124,7 +121,6 @@ export const getStoredTickets = (): Ticket[] => {
   return [];
 };
 
-// Helper to save tickets to "submittedTickets" in localStorage
 export const storeSubmittedTickets = (ticketsToStore: Ticket[]): void => {
   if (typeof window === 'undefined') return;
   const storableTickets = ticketsToStore.map(t => ({
@@ -140,7 +136,6 @@ export const storeSubmittedTickets = (ticketsToStore: Ticket[]): void => {
 };
 
 
-// Helper to combine mock tickets and stored tickets
 export const getAllTickets = (): Ticket[] => {
   const storedTickets = getStoredTickets();
   const allMockTickets = mockTickets.map(t => ({
@@ -152,15 +147,11 @@ export const getAllTickets = (): Ticket[] => {
   
   const combinedTicketsMap = new Map<string, Ticket>();
 
-  // Add mock tickets first
   allMockTickets.forEach(ticket => combinedTicketsMap.set(ticket.id, ticket));
-  // Overwrite with or add stored tickets
   storedTickets.forEach(ticket => combinedTicketsMap.set(ticket.id, ticket));
   
   const combinedTickets = Array.from(combinedTicketsMap.values());
   
-  // Store the combined list under 'allTickets' for consistency if needed,
-  // but ensure dates are ISO strings for storage.
   if (typeof window !== 'undefined') {
     const storableAllTickets = combinedTickets.map(t => ({
       ...t,
@@ -177,15 +168,12 @@ export const getAllTickets = (): Ticket[] => {
   return combinedTickets.sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 };
 
-// --- Notes & Docs localStorage Helpers ---
-
 const NOTES_STORAGE_KEY = 'helpdeskLiteNotes';
 const BOOKMARKS_STORAGE_KEY = 'helpdeskLiteBookmarks';
 const DOCUMENTS_STORAGE_KEY = 'helpdeskLiteDocuments';
 const SNIPPETS_STORAGE_KEY = 'helpdeskLiteSnippets';
 
 
-// Notes
 export const getStoredNotes = (): Note[] => {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem(NOTES_STORAGE_KEY);
@@ -197,7 +185,6 @@ export const storeNotes = (notes: Note[]): void => {
   localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
 };
 
-// Bookmarks
 export const getStoredBookmarks = (): Bookmark[] => {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem(BOOKMARKS_STORAGE_KEY);
@@ -209,7 +196,6 @@ export const storeBookmarks = (bookmarks: Bookmark[]): void => {
   localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify(bookmarks));
 };
 
-// Documents
 export const getStoredDocuments = (): Document[] => {
   if (typeof window === 'undefined') return [];
   const stored = localStorage.getItem(DOCUMENTS_STORAGE_KEY);
@@ -221,29 +207,26 @@ export const storeDocuments = (documents: Document[]): void => {
   localStorage.setItem(DOCUMENTS_STORAGE_KEY, JSON.stringify(documents));
 };
 
-// Snippets
 export const getStoredSnippets = (): Snippet[] => {
-  if (typeof window === 'undefined') return initialMockSnippets; // Return default if no window
+  if (typeof window === 'undefined') return initialMockSnippets; 
   const stored = localStorage.getItem(SNIPPETS_STORAGE_KEY);
   if (stored) {
     try {
         const parsedSnippets = JSON.parse(stored);
-        // Ensure createdAt and updatedAt are present, defaulting if not
         return parsedSnippets.map((s: any) => ({
             ...s,
-            createdAt: s.createdAt || new Date(0).toISOString(), // Default to epoch if missing
-            updatedAt: s.updatedAt || new Date(0).toISOString()  // Default to epoch if missing
+            createdAt: s.createdAt || new Date(0).toISOString(), 
+            updatedAt: s.updatedAt || new Date(0).toISOString()  
         }));
     } catch(e) {
         console.error("Error parsing snippets from localStorage:", e);
-        return initialMockSnippets.map(s => ({ // Ensure mock snippets also have these fields
+        return initialMockSnippets.map(s => ({ 
              ...s,
             createdAt: s.createdAt || new Date(0).toISOString(),
             updatedAt: s.updatedAt || new Date(0).toISOString()
         }));
     }
   }
-  // If nothing in localStorage, initialize with mock snippets and store them
   const snippetsToStore = initialMockSnippets.map(s => ({
        ...s,
       createdAt: s.createdAt || new Date(0).toISOString(),

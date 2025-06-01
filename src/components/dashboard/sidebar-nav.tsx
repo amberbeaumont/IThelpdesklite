@@ -12,7 +12,8 @@ import {
   LogOut,
   NotebookText, 
   ClipboardEdit,
-  Archive, // Added Archive icon
+  Archive, 
+  FileX2, // Added icon for deleted tickets
 } from "lucide-react";
 import {
   SidebarMenu,
@@ -29,7 +30,8 @@ import { useToast } from "@/hooks/use-toast";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/tickets", label: "Tickets", icon: ClipboardList },
-  { href: "/dashboard/archived-tickets", label: "Archived Tickets", icon: Archive }, // Added Archived Tickets
+  { href: "/dashboard/archived-tickets", label: "Archived Tickets", icon: Archive },
+  { href: "/dashboard/deleted-tickets", label: "Deleted Tickets", icon: FileX2 }, // Added Deleted Tickets
   { href: "/dashboard/users", label: "Users", icon: Users },
   { href: "/dashboard/equipment", label: "IT Equipment", icon: HardDrive },
   { href: "/dashboard/reports", label: "Reports", icon: BarChartBig },
@@ -43,7 +45,6 @@ export function SidebarNav() {
   const { toast } = useToast();
 
   const handleLogout = async () => {
-    // Simulate logout
     await new Promise(resolve => setTimeout(resolve, 500));
     toast({ title: "Logged Out", description: "You have been successfully logged out." });
     router.push("/login");

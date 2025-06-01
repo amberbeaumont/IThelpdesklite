@@ -1,14 +1,14 @@
 
-"use client"; // Added "use client"
+"use client"; 
 
-import * as React from 'react'; // Added React import
+import * as React from 'react'; 
 import { StatusSummaryCards } from "@/components/dashboard/status-summary-cards";
 import { TicketList } from "@/components/dashboard/ticket-list";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button"; // Added Button import
-import { mockUsers, getAllTickets } from "@/lib/placeholder-data"; // Updated import for tickets
-import type { Ticket } from '@/lib/types'; // Added Ticket type import
-import { Activity, PlusCircle } from "lucide-react"; // Added PlusCircle import
+import { Button } from "@/components/ui/button"; 
+import { mockUsers, getAllTickets } from "@/lib/placeholder-data"; 
+import type { Ticket } from '@/lib/types'; 
+import { Activity, PlusCircle } from "lucide-react"; 
 import Link from "next/link";
 
 export default function DashboardPage() {
@@ -18,11 +18,15 @@ export default function DashboardPage() {
     setAllTicketsData(getAllTickets());
   }, []);
 
+  const activeTicketsForSummary = React.useMemo(() => 
+    allTicketsData.filter(t => t.status !== "Deleted"),
+  [allTicketsData]);
+
   const recentTickets = React.useMemo(() => 
-    allTicketsData
+    activeTicketsForSummary // Use active tickets for recent activity too
       .sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
       .slice(0, 5),
-  [allTicketsData]);
+  [activeTicketsForSummary]);
   
   const itUser = mockUsers.find(u => u.role === 'IT_Support') || { name: "IT Team Member" };
 
@@ -38,7 +42,7 @@ export default function DashboardPage() {
         </Link>
       </div>
       
-      <StatusSummaryCards tickets={allTicketsData} />
+      <StatusSummaryCards tickets={activeTicketsForSummary} />
 
       <Card className="shadow-md">
         <CardHeader>
@@ -51,7 +55,6 @@ export default function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Passing a minimal version of TicketList for overview */}
           <TicketList initialTickets={recentTickets} />
         </CardContent>
       </Card>
