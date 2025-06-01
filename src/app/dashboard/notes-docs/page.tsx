@@ -278,9 +278,9 @@ export default function NotesDocsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Notes Section (Left Column) */}
             <Card className="lg:col-span-2 shadow-md bg-sidebar-background text-sidebar-foreground p-0">
-              <CardHeader className="bg-sidebar-background rounded-t-lg">
-                <CardTitle className="text-xl">Notes ({filteredNotes.length})</CardTitle>
-                 <CardDescription className="text-sidebar-foreground/80">Click "Add Note" or an existing note's edit icon.</CardDescription>
+              <CardHeader className="rounded-t-lg bg-card">
+                <CardTitle className="text-xl text-card-foreground">Notes ({filteredNotes.length})</CardTitle>
+                 <CardDescription className="text-muted-foreground">Click "Add Note" or an existing note's edit icon.</CardDescription>
               </CardHeader>
               <CardContent className="p-4 space-y-4">
                 {filteredNotes.length > 0 ? (
