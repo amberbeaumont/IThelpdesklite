@@ -5,9 +5,10 @@ import * as React from 'react'; // Added React import
 import { StatusSummaryCards } from "@/components/dashboard/status-summary-cards";
 import { TicketList } from "@/components/dashboard/ticket-list";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button"; // Added Button import
 import { mockUsers, getAllTickets } from "@/lib/placeholder-data"; // Updated import for tickets
 import type { Ticket } from '@/lib/types'; // Added Ticket type import
-import { Activity } from "lucide-react";
+import { Activity, PlusCircle } from "lucide-react"; // Added PlusCircle import
 import Link from "next/link";
 
 export default function DashboardPage() {
@@ -33,8 +34,7 @@ export default function DashboardPage() {
           <p className="text-muted-foreground">Here's an overview of the support tickets.</p>
         </div>
         <Link href="/dashboard/tickets/new" passHref>
-           {/* Placeholder for new ticket button for IT staff, if needed. Or remove if only users submit.
-           <Button><PlusCircle className="mr-2 h-4 w-4" /> New Ticket</Button> */}
+           <Button><PlusCircle className="mr-2 h-4 w-4" /> New Ticket</Button>
         </Link>
       </div>
       
