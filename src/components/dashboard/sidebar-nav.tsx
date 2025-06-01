@@ -13,7 +13,7 @@ import {
   NotebookText, 
   ClipboardEdit,
   Archive, 
-  FileX2, // Added icon for deleted tickets
+  FileX2, 
 } from "lucide-react";
 import {
   SidebarMenu,
@@ -30,8 +30,8 @@ import { useToast } from "@/hooks/use-toast";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/tickets", label: "Tickets", icon: ClipboardList },
-  { href: "/dashboard/archived-tickets", label: "Archived Tickets", icon: Archive },
-  { href: "/dashboard/deleted-tickets", label: "Deleted Tickets", icon: FileX2 }, // Added Deleted Tickets
+  // { href: "/dashboard/archived-tickets", label: "Archived Tickets", icon: Archive }, // Removed
+  { href: "/dashboard/deleted-tickets", label: "Archived & Deleted", icon: Archive }, // Updated label and icon
   { href: "/dashboard/users", label: "Users", icon: Users },
   { href: "/dashboard/equipment", label: "IT Equipment", icon: HardDrive },
   { href: "/dashboard/reports", label: "Reports", icon: BarChartBig },
@@ -107,3 +107,5 @@ export function SidebarNav() {
     </>
   );
 }
+
+    

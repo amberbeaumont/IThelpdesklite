@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { mockUsers, ticketStatuses, urgencies, getStoredTickets, storeSubmittedTickets } from "@/lib/placeholder-data";
+import { mockUsers, ticketStatuses as allAppTicketStatuses, urgencies, getStoredTickets, storeSubmittedTickets } from "@/lib/placeholder-data";
 import type { Ticket, TicketStatus, Urgency } from "@/lib/types";
 import { Eye, Filter, CircleAlert, LoaderCircle, UserCircle, CheckCircle2, ChevronDown, Minus, ChevronUp, AlertTriangle, Trash2, FileX2 } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
@@ -35,6 +35,8 @@ import { useToast } from "@/hooks/use-toast";
 interface TicketListProps {
   initialTickets: Ticket[];
   hideDeleteButton?: boolean;
+  allowedStatusesForFilter?: TicketStatus[];
+  hideStatusFilter?: boolean; // Added prop
 }
 
 const statusIcons: Record<TicketStatus, React.ReactElement> = {
@@ -63,7 +65,7 @@ const getStatusBadgeVariant = (status: TicketStatus): "default" | "secondary" | 
   }
 };
 
-export function TicketList({ initialTickets, hideDeleteButton = false }: TicketListProps) {
+export function TicketList({ initialTickets, hideDeleteButton = false, allowedStatusesForFilter, hideStatusFilter = false }: TicketListProps) {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<TicketStatus | "all">("all");
@@ -107,20 +109,17 @@ export function TicketList({ initialTickets, hideDeleteButton = false }: TicketL
       updatedAt: new Date(),
     };
 
-    // Update state
     setCurrentTickets(prevTickets => 
       prevTickets.map(t => t.id === updatedTicketData.id ? updatedTicketData : t)
     );
     
-    // Update localStorage for "submittedTickets"
     if (typeof window !== 'undefined') {
-      const storedSubmitted = getStoredTickets(); // Gets from "submittedTickets"
+      const storedSubmitted = getStoredTickets(); 
       const updatedStoredSubmitted = storedSubmitted.map(t => 
         t.id === updatedTicketData.id ? 
         { ...updatedTicketData, createdAt: new Date(updatedTicketData.createdAt).toISOString(), updatedAt: new Date(updatedTicketData.updatedAt).toISOString() } 
         : t
       );
-      // Ensure dates are ISO strings for storage
       storeSubmittedTickets(updatedStoredSubmitted.map(t => ({
         ...t,
         createdAt: new Date(t.createdAt).toISOString(),
@@ -128,7 +127,6 @@ export function TicketList({ initialTickets, hideDeleteButton = false }: TicketL
         comments: t.comments.map(c => ({...c, createdAt: new Date(c.createdAt).toISOString()}))
       })));
 
-      // Update "allTickets" in localStorage
       const allTicketsRaw = localStorage.getItem('allTickets');
       if (allTicketsRaw) {
         try {
@@ -156,6 +154,8 @@ export function TicketList({ initialTickets, hideDeleteButton = false }: TicketL
     });
     setTicketToDelete(null);
   };
+  
+  const statusesForFilterDropdown = allowedStatusesForFilter || allAppTicketStatuses.filter(s => s !== "Deleted");
 
 
   return (
@@ -168,16 +168,18 @@ export function TicketList({ initialTickets, hideDeleteButton = false }: TicketL
           className="max-w-sm"
         />
         <div className="flex gap-2">
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TicketStatus | "all")}>
-            <SelectTrigger className="w-[180px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter by Status" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {ticketStatuses.filter(s => s !== "Deleted").map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
-            </SelectContent>
-            </Select>
+            {!hideStatusFilter && (
+              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as TicketStatus | "all")}>
+              <SelectTrigger className="w-[180px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filter by Status" />
+              </SelectTrigger>
+              <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {statusesForFilterDropdown.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+              </SelectContent>
+              </Select>
+            )}
             <Select value={urgencyFilter} onValueChange={(value) => setUrgencyFilter(value as Urgency | "all")}>
             <SelectTrigger className="w-[180px]">
                 <Filter className="h-4 w-4 mr-2" />
@@ -229,7 +231,7 @@ export function TicketList({ initialTickets, hideDeleteButton = false }: TicketL
                           <span className="sr-only">View Ticket</span>
                           </Link>
                       </Button>
-                     {!hideDeleteButton && (
+                     {!hideDeleteButton && ticket.status !== "Deleted" && (
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteTicketClick(ticket)} className="hover:text-destructive" aria-label={`Delete ticket ${ticket.subject}`}>
                             <Trash2 className="h-4 w-4" />
                         </Button>
@@ -253,7 +255,7 @@ export function TicketList({ initialTickets, hideDeleteButton = false }: TicketL
           <AlertDialogHeader>
             <AlertDialogTitle>Move Ticket to Deleted Items?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will mark the ticket <span className="font-semibold">"{ticketToDelete?.subject}"</span> as deleted. You can view it in the "Deleted Tickets" section.
+              This will mark the ticket <span className="font-semibold">"{ticketToDelete?.subject}"</span> as deleted. You can view it in the "Archived & Deleted Tickets" section using the "Deleted" filter.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -267,3 +269,5 @@ export function TicketList({ initialTickets, hideDeleteButton = false }: TicketL
     </div>
   );
 }
+
+    
